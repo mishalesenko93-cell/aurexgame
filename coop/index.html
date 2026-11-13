@@ -3,103 +3,174 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101320">
+  <meta name="theme-color" content="#0a0c12">
   <title>AUREX Company</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root { color-scheme: dark; --bg:#101320; --card:#191e2e; --muted:#9ba5bd; --line:#2b3246; --accent:#8c72ff; --green:#41d7a1; --red:#ff7587; }
+    :root {
+      color-scheme: dark;
+      --bg:#0a0c12; --surface:#11151f; --surface-2:#171d29; --line:#283143;
+      --text:#f4f6fb; --muted:#929caf; --accent:#b5f36a; --accent-ink:#11170c;
+      --violet:#a998ff; --green:#77e2ae; --red:#ff8294; --amber:#f7ce7a;
+      --radius:20px;
+    }
     * { box-sizing:border-box; }
-    body { margin:0; background:var(--bg); color:#f5f6fb; font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif; }
-    main { max-width:760px; padding:24px 16px 48px; margin:auto; }
-    header { margin:0 0 22px; }
-    h1 { font-size:23px; margin:0 0 4px; }
-    h2 { font-size:17px; margin:0 0 14px; }
-    p { margin:6px 0; }
-    .muted, small { color:var(--muted); }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin:12px 0; }
-    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-    .metric { padding:13px; border-radius:12px; background:#111624; }
-    .metric strong { display:block; font-size:19px; margin-top:3px; }
-    label { display:block; font-size:13px; color:var(--muted); margin:12px 0 5px; }
-    input,textarea,select { width:100%; border:1px solid var(--line); background:#111624; color:#fff; border-radius:10px; padding:11px 12px; font:inherit; }
-    textarea { min-height:94px; resize:vertical; }
-    button,.button { border:0; border-radius:10px; padding:10px 14px; color:#fff; background:var(--accent); font:600 14px system-ui,-apple-system,Segoe UI,sans-serif; cursor:pointer; text-decoration:none; display:inline-block; margin:9px 5px 0 0; }
-    button.secondary { background:#30374b; }
-    button.danger { background:#8d3345; }
-    button:disabled { opacity:.5; cursor:wait; }
-    .row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
-    .entry { padding:12px 0; border-top:1px solid var(--line); }
-    .entry:first-of-type { border-top:0; }
-    .badge { display:inline-block; border-radius:20px; background:#30374b; padding:3px 9px; font-size:12px; }
-    .badge.pending { color:#ffd27a; }.badge.approved,.badge.accepted { color:var(--green); }.badge.rejected { color:var(--red); }
-    .notice { padding:12px; border:1px solid #554b88; border-radius:10px; background:#242039; }
+    html { background:var(--bg); }
+    body {
+      margin:0; min-height:100vh; color:var(--text);
+      background:radial-gradient(ellipse at 85% -5%,rgba(119,92,255,.18),transparent 34rem),
+                 radial-gradient(ellipse at -10% 45%,rgba(181,243,106,.07),transparent 30rem),var(--bg);
+      font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+      letter-spacing:.005em;
+    }
+    button,input,textarea,select { font:inherit; }
+    main { width:min(100%,760px); margin:auto; padding:24px 18px calc(105px + env(safe-area-inset-bottom)); }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 22px; }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+    .brand-mark { width:42px; height:42px; display:grid; place-items:center; border-radius:15px; color:var(--accent-ink); background:var(--accent); font-weight:900; letter-spacing:-.08em; }
+    h1 { font-size:18px; letter-spacing:-.04em; margin:0; }
+    h2 { font-size:17px; letter-spacing:-.025em; margin:0 0 13px; }
+    h3 { font-size:14px; margin:0; }
+    p { margin:7px 0; }
+    .muted,small { color:var(--muted); }
+    .eyebrow { color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+    .avatar { display:grid; place-items:center; flex:0 0 40px; width:40px; height:40px; border:1px solid var(--line); border-radius:50%; color:var(--text); background:var(--surface-2); font-weight:700; }
+    .page { animation:appear .18s ease-out; }
+    @keyframes appear { from { opacity:.5; transform:translateY(4px); } to { opacity:1; transform:none; } }
     .hidden { display:none !important; }
-    #toast { position:sticky; top:8px; z-index:5; }
-    @media(max-width:450px) { .grid { grid-template-columns:1fr 1fr; } }
+    .card { padding:18px; margin:13px 0; border:1px solid rgba(146,156,175,.15); border-radius:var(--radius); background:linear-gradient(145deg,rgba(255,255,255,.035),transparent 65%),var(--surface); box-shadow:0 14px 40px rgba(0,0,0,.12); }
+    .hero { overflow:hidden; position:relative; padding:23px; border:1px solid rgba(181,243,106,.22); background:radial-gradient(ellipse at 100% 0,rgba(181,243,106,.14),transparent 55%),linear-gradient(145deg,#171d26,#10141c); }
+    .hero:after { content:""; position:absolute; width:170px; height:170px; border:1px solid rgba(181,243,106,.12); border-radius:50%; right:-76px; bottom:-108px; box-shadow:0 0 0 20px rgba(181,243,106,.025),0 0 0 42px rgba(181,243,106,.02); pointer-events:none; }
+    .hero h2 { margin:8px 0 3px; font-size:22px; letter-spacing:-.05em; }
+    .hero-value { display:block; margin-top:12px; font-size:34px; line-height:1.05; letter-spacing:-.06em; font-weight:750; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .metric { padding:16px; border:1px solid rgba(146,156,175,.12); border-radius:16px; background:rgba(17,21,31,.85); }
+    .metric strong { display:block; margin-top:6px; font-size:18px; letter-spacing:-.035em; }
+    label { display:block; margin:13px 0 6px; color:var(--muted); font-size:12px; font-weight:650; }
+    input,textarea,select { width:100%; min-height:45px; padding:11px 13px; color:var(--text); background:#0d1119; border:1px solid var(--line); border-radius:12px; outline:none; }
+    input:focus,textarea:focus,select:focus { border-color:rgba(181,243,106,.7); box-shadow:0 0 0 3px rgba(181,243,106,.08); }
+    textarea { min-height:104px; resize:vertical; }
+    button,.button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:42px; margin:9px 5px 0 0; padding:10px 14px; color:var(--accent-ink); background:var(--accent); border:0; border-radius:12px; font-weight:750; font-size:13px; text-decoration:none; cursor:pointer; }
+    button.secondary,.button.secondary { color:var(--text); background:#242c3a; border:1px solid #343e51; }
+    button.danger { color:#ffdce1; background:#48242e; border:1px solid #743544; }
+    button:disabled { opacity:.5; cursor:wait; }
+    .row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:9px; }
+    .entry { padding:14px 0; border-top:1px solid rgba(146,156,175,.13); }
+    .entry:first-child { border-top:0; }
+    .badge { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:99px; padding:3px 9px; color:var(--muted); background:#151b26; font-size:11px; font-weight:700; }
+    .badge.pending { color:var(--amber); }.badge.approved,.badge.accepted { color:var(--green); }.badge.rejected { color:var(--red); }
+    .notice { padding:12px 14px; border:1px solid #554b88; border-radius:13px; background:#201d31; }
+    .positive { color:var(--green); }.negative { color:var(--red); }
+    .nav { position:sticky; z-index:4; top:0; display:flex; gap:7px; overflow-x:auto; margin:0 -3px 14px; padding:8px 3px 10px; scrollbar-width:none; background:linear-gradient(var(--bg) 75%,transparent); }
+    .nav::-webkit-scrollbar { display:none; }
+    .nav button { flex:0 0 auto; min-height:38px; margin:0; padding:8px 13px; color:var(--muted); background:#131823; border:1px solid var(--line); border-radius:99px; font-size:12px; }
+    .nav button.active { color:var(--accent-ink); background:var(--accent); border-color:var(--accent); }
+    .section-heading { display:flex; align-items:end; justify-content:space-between; gap:10px; margin:22px 2px 6px; }
+    .section-heading h2 { margin:0; }
+    .empty { padding:16px 0; color:var(--muted); }
+    #toast { position:sticky; top:54px; z-index:8; }
+    #toast:not(:empty) { margin-bottom:10px; }
+    @media(min-width:650px) { main { padding-top:34px; }.nav { top:0; } }
+    @media(max-width:420px) { main { padding-left:13px; padding-right:13px; }.hero { padding:19px; }.card { padding:16px; }.nav button { padding:8px 11px; } }
   </style>
 </head>
 <body>
 <main>
   <div id="toast"></div>
   <header>
-    <h1>AUREX Company</h1>
-    <div id="welcome" class="muted">Кабинет сотрудников и сотрудничества</div>
+    <div class="brand"><div class="brand-mark">A</div><div><h1>AUREX COMPANY</h1><div id="welcome" class="muted">Рабочее пространство</div></div></div>
+    <div id="avatar" class="avatar">A</div>
   </header>
-  <section id="auth-warning" class="card hidden">
-    <h2>Откройте приложение через Telegram</h2>
-    <p class="muted">Для входа нужен подписанный Telegram Mini App. Запустите бота и нажмите «Открыть кабинет».</p>
-  </section>
+  <section id="auth-warning" class="card hidden"><h2>Откройте через Telegram</h2><p class="muted">Запустите бота и нажмите кнопку кабинета — так Telegram подтвердит ваш аккаунт.</p></section>
   <div id="app" class="hidden">
-    <section id="employee-panel" class="hidden">
-      <div class="grid">
-        <div class="metric"><span class="muted">Фиксированная зарплата / месяц</span><strong id="salary">—</strong></div>
-        <div class="metric"><span class="muted">Внутренний баланс</span><strong id="balance">—</strong></div>
+    <nav id="navigation" class="nav" aria-label="Разделы"></nav>
+    <section id="page-home" class="page hidden">
+      <div class="card hero">
+        <div class="eyebrow" id="home-eyebrow">Личный кабинет</div>
+        <h2 id="home-title">Добро пожаловать</h2>
+        <p class="muted" id="home-subtitle">Ваши рабочие процессы — в одном месте.</p>
+        <strong class="hero-value" id="home-balance">—</strong>
+        <small>Доступный внутренний баланс · USDT</small>
       </div>
-      <section class="card">
-        <h2>Реквизиты TRC20</h2>
-        <form id="wallet-form">
-          <label for="wallet">USDT-адрес (TRON)</label>
-          <input id="wallet" autocomplete="off" placeholder="T..." maxlength="64">
-          <button>Сохранить реквизиты</button>
-        </form>
+      <div id="employee-metrics" class="grid hidden">
+        <div class="metric"><span class="muted">Зарплата в месяц</span><strong id="salary">—</strong></div>
+        <div class="metric"><span class="muted">Мои отчёты</span><strong id="report-count">0</strong></div>
+      </div>
+      <div id="admin-shortcuts" class="grid hidden">
+        <button class="secondary" data-go="admin-reports">Проверить отчёты</button>
+        <button class="secondary" data-go="admin-payments">Начислить средства</button>
+      </div>
+      <section id="application-card" class="card hidden">
+        <div class="eyebrow">Открытый набор</div><h2 style="margin-top:7px">Работаем вместе?</h2>
+        <p class="muted">Оставьте заявку на работу или предложите формат сотрудничества.</p>
+        <button data-go="application">Подать заявку</button>
+        <div id="my-applications"></div>
       </section>
       <section class="card">
-        <h2>Рабочий отчёт</h2>
+        <div class="row"><div><div class="eyebrow">Недавнее</div><h2 style="margin:5px 0 0">Активность</h2></div><button class="secondary" data-go="payments">Все операции</button></div>
+        <div id="recent-activity"></div>
+      </section>
+    </section>
+    <section id="page-reports" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Команда</div><h2>Рабочие отчёты</h2></div></div>
+      <section id="report-submit-card" class="card">
         <form id="report-form">
-          <label for="report-message">Что сделано</label>
-          <textarea id="report-message" maxlength="4000" required></textarea>
-          <label for="report-file">Файл к отчёту (до 10 МБ)</label>
-          <input id="report-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.zip">
+          <label for="report-message">Что сделано</label><textarea id="report-message" maxlength="4000" required placeholder="Кратко опишите результат и прогресс"></textarea>
+          <label for="report-file">Файл к отчёту · до 10 МБ</label><input id="report-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.zip">
           <button>Отправить на проверку</button>
         </form>
       </section>
-      <section class="card"><h2>Мои отчёты</h2><div id="my-reports"></div></section>
-      <section class="card"><h2>Баланс и выплаты</h2><div id="ledger"></div></section>
+      <section class="card"><h2>История отчётов</h2><div id="my-reports"></div></section>
     </section>
-    <section id="application-panel" class="card">
-      <h2>Заявка на сотрудничество или работу</h2>
-      <form id="application-form">
-        <label for="application-kind">Что вас интересует?</label>
-        <select id="application-kind"><option value="job">Работа в команде</option><option value="collaboration">Сотрудничество</option></select>
-        <label for="position">Роль / направление</label>
-        <input id="position" maxlength="120" placeholder="Например, дизайн или партнёрство">
-        <label for="application-message">Расскажите о себе и предложении</label>
-        <textarea id="application-message" maxlength="4000" required></textarea>
-        <button>Отправить заявку</button>
-      </form>
-      <div id="my-applications"></div>
+    <section id="page-payments" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Финансы</div><h2>Баланс и выплаты</h2></div></div>
+      <div class="card hero"><div class="eyebrow">Доступно к выплате</div><strong id="payments-balance" class="hero-value">—</strong><small>Внутренний учёт · переводы в блокчейне не выполняются</small></div>
+      <section class="card"><h2>История операций</h2><div id="ledger"></div></section>
     </section>
-    <section id="admin-panel" class="hidden">
-      <h2>Панель администратора</h2>
-      <section class="card"><h2>Заявки</h2><div id="admin-applications"></div></section>
-      <section class="card">
-        <h2>Сотрудники</h2>
-        <label for="user-search">Найти пользователя (он должен сначала запустить бота)</label>
-        <input id="user-search" placeholder="@username или Telegram ID">
-        <div id="user-results"></div>
-        <div id="admin-employees"></div>
+    <section id="page-wallet" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Реквизиты</div><h2>Кошелёк USDT</h2></div></div>
+      <section class="card"><p class="muted">Укажите адрес сети TRON (TRC20), чтобы администратор видел ваши реквизиты при ручной выплате.</p>
+        <form id="wallet-form"><label for="wallet">Адрес TRC20</label><input id="wallet" autocomplete="off" placeholder="Например, T..." maxlength="64"><button>Сохранить кошелёк</button></form>
       </section>
-      <section class="card"><h2>Отчёты на проверку</h2><div id="admin-reports"></div></section>
+    </section>
+    <section id="page-application" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Открытый набор</div><h2>Новая заявка</h2></div></div>
+      <section class="card"><form id="application-form">
+        <label for="application-kind">Направление</label><select id="application-kind"><option value="job">Работа в команде</option><option value="collaboration">Сотрудничество</option></select>
+        <label for="position">Роль или направление</label><input id="position" maxlength="120" placeholder="Например, дизайн или партнёрство">
+        <label for="application-message">Расскажите о себе и предложении</label><textarea id="application-message" maxlength="4000" required></textarea>
+        <button>Отправить заявку</button>
+      </form></section>
+      <section class="card"><h2>Мои заявки</h2><div id="application-history"></div></section>
+    </section>
+    <section id="page-admin-applications" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Администрирование</div><h2>Заявки кандидатов</h2></div></div>
+      <section class="card"><div id="admin-applications"></div></section>
+    </section>
+    <section id="page-admin-reports" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Администрирование</div><h2>Проверка отчётов</h2></div></div>
+      <section class="card"><div id="admin-reports"></div></section>
+    </section>
+    <section id="page-admin-team" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Администрирование</div><h2>Команда</h2></div></div>
+      <section class="card">
+        <label for="user-search">Найти пользователя по Telegram ID или username</label><input id="user-search" placeholder="@username или Telegram ID">
+        <div id="user-results"></div>
+      </section>
+      <section class="card"><h2>Сотрудники</h2><div id="admin-employees"></div></section>
+    </section>
+    <section id="page-admin-payments" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Администрирование</div><h2>Начисления и выплаты</h2></div></div>
+      <div class="notice">Начисление сразу меняет внутренний баланс сотрудника, без его подтверждения. Перевод USDT выполняется отдельно; после него запишите выплату, чтобы списать её с баланса.</div>
+      <section class="card"><div id="admin-payments"></div></section>
+    </section>
+    <section id="page-admin-action" class="page hidden">
+      <div class="section-heading"><div><div class="eyebrow">Команда · финансы</div><h2 id="action-title">Операция</h2></div></div>
+      <section class="card"><p id="action-description" class="muted"></p><form id="admin-action-form">
+        <label id="action-amount-label" for="action-amount">Сумма в USDT</label><input id="action-amount" inputmode="decimal" type="number" min="0.01" step="0.01" required>
+        <label id="action-note-label" for="action-note">Описание</label><input id="action-note" maxlength="200" placeholder="Необязательно">
+        <button id="action-submit">Сохранить операцию</button><button type="button" class="secondary" data-go="admin-payments">Назад</button>
+      </form></section>
     </section>
   </div>
 </main>
@@ -112,7 +183,7 @@
   const money = (cents) => (Number(cents || 0) / 100).toFixed(2) + " USDT";
   const badge = (status) => `<span class="badge ${escapeHtml(status)}">${({pending:"На проверке",approved:"Одобрен",rejected:"Отклонён",accepted:"Принята"}[status] || escapeHtml(status))}</span>`;
   const toast = (message, error=false) => {
-    $("toast").innerHTML = `<div class="notice" style="border-color:${error ? "#8d3345" : "#286c57"}">${escapeHtml(message)}</div>`;
+    $("toast").innerHTML = `<div class="notice" style="border-color:${error ? "#743544" : "#286c57"}">${escapeHtml(message)}</div>`;
     setTimeout(() => $("toast").replaceChildren(), 4500);
   };
   const api = async (path, body) => {
@@ -125,139 +196,179 @@
     if (!response.ok) throw new Error(result.error || "Ошибка запроса");
     return result;
   };
-  const run = async (action) => {
-    try { await action(); } catch (error) { toast(error.message, true); }
-  };
+  const run = async (action) => { try { await action(); } catch (error) { toast(error.message, true); } };
   const person = (item) => escapeHtml(item.name || [item.first_name, item.last_name].filter(Boolean).join(" ") || item.username || item.telegram_id);
+  let currentUser, actionUserId, actionType;
+  const nav = [
+    ["home","Главная"],["reports","Отчёты"],["payments","Выплаты"],["wallet","Кошелёк"],
+    ["application","Заявка"],["admin-applications","Заявки"],["admin-reports","Отчёты команды"],
+    ["admin-team","Команда"],["admin-payments","Финансы"]
+  ];
+  const go = (page) => {
+    document.querySelectorAll(".page").forEach((el) => el.classList.toggle("hidden", el.id !== `page-${page}`));
+    document.querySelectorAll("#navigation button").forEach((button) => button.classList.toggle("active", button.dataset.go === page));
+    window.scrollTo({top:0, behavior:"smooth"});
+  };
+  const buildNavigation = (me) => {
+    const available = nav.filter(([key]) => {
+      if (key === "home") return true;
+      if (key === "reports" || key === "payments" || key === "wallet") return me.employee;
+      if (key === "application") return !me.employee;
+      return me.is_admin;
+    });
+    $("navigation").innerHTML = available.map(([key,label]) => `<button data-go="${key}">${label}</button>`).join("");
+    $("navigation").querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => go(button.dataset.go)));
+  };
+  const renderApplications = (applications) => applications.length ? applications.map((a) =>
+    `<div class="entry"><div class="row"><strong>${a.kind === "job" ? "Работа" : "Сотрудничество"}</strong>${badge(a.status)}</div><p>${escapeHtml(a.position || a.message)}</p>${a.decision_note ? `<small>${escapeHtml(a.decision_note)}</small>` : ""}</div>`).join("") : `<div class="empty">Заявок пока нет.</div>`;
+  const renderLedger = (ledger) => ledger.length ? ledger.map((entry) =>
+    `<div class="entry row"><span>${escapeHtml(entry.description || (entry.kind === "salary" ? "Зарплата" : entry.kind === "credit" ? "Начисление" : "Выплата"))}<br><small>${escapeHtml(entry.created_at)}</small></span><strong class="${entry.amount_cents < 0 ? "negative" : "positive"}">${entry.amount_cents < 0 ? "−" : "+"}${money(Math.abs(entry.amount_cents))}</strong></div>`).join("") : `<div class="empty">Операций пока нет.</div>`;
   const renderMe = (me) => {
+    currentUser = me;
     $("app").classList.remove("hidden");
-    $("welcome").textContent = `Здравствуйте, ${me.user.name}`;
-    $("application-panel").classList.toggle("hidden", me.employee);
-    $("my-applications").innerHTML = me.applications.length ? `<h2>Мои заявки</h2>` + me.applications.map((a) =>
-      `<div class="entry"><div class="row"><strong>${a.kind === "job" ? "Работа" : "Сотрудничество"}</strong>${badge(a.status)}</div><p>${escapeHtml(a.position || a.message)}</p>${a.decision_note ? `<small>${escapeHtml(a.decision_note)}</small>` : ""}</div>`).join("") : "";
-    $("employee-panel").classList.toggle("hidden", !me.employee);
+    $("welcome").textContent = me.user.name;
+    $("avatar").textContent = (me.user.name || "A").trim().charAt(0).toUpperCase();
+    $("home-balance").textContent = money(me.balance_cents);
+    $("payments-balance").textContent = money(me.balance_cents);
+    $("application-card").classList.toggle("hidden", me.employee);
+    $("my-applications").innerHTML = renderApplications(me.applications);
+    $("application-history").innerHTML = renderApplications(me.applications);
+    $("employee-metrics").classList.toggle("hidden", !me.employee);
     if (me.employee) {
       $("salary").textContent = money(me.monthly_salary_cents);
-      $("balance").textContent = money(me.balance_cents);
+      $("report-count").textContent = String(me.reports.length);
       $("wallet").value = me.wallet || "";
       $("my-reports").innerHTML = me.reports.length ? me.reports.map((r) =>
-        `<div class="entry"><div class="row"><strong>Отчёт #${r.id}</strong>${badge(r.status)}</div><p>${escapeHtml(r.message)}</p><small>${escapeHtml(r.created_at)}</small>${r.decision_note ? `<p>${escapeHtml(r.decision_note)}</p>` : ""}${(r.files || []).map((f) => `<div><a class="button secondary" href="/api/files/${encodeURIComponent(f.id)}">${escapeHtml(f.name)}</a></div>`).join("")}</div>`).join("") : `<p class="muted">Отчётов пока нет.</p>`;
-      $("ledger").innerHTML = me.ledger.length ? me.ledger.map((entry) =>
-        `<div class="entry row"><span>${escapeHtml(entry.description || (entry.kind === "salary" ? "Зарплата" : "Выплата"))}<br><small>${escapeHtml(entry.created_at)}</small></span><strong style="color:${entry.amount_cents < 0 ? "#ff7587" : "#41d7a1"}">${entry.amount_cents < 0 ? "−" : "+"}${money(Math.abs(entry.amount_cents))}</strong></div>`).join("") : `<p class="muted">Начислений пока нет.</p>`;
+        `<div class="entry"><div class="row"><strong>Отчёт #${r.id}</strong>${badge(r.status)}</div><p>${escapeHtml(r.message)}</p><small>${escapeHtml(r.created_at)}</small>${r.decision_note ? `<p>${escapeHtml(r.decision_note)}</p>` : ""}${(r.files || []).map((f) => `<div><a class="button secondary" href="/api/files/${encodeURIComponent(f.id)}">${escapeHtml(f.name)}</a></div>`).join("")}</div>`).join("") : `<div class="empty">Отчётов пока нет.</div>`;
+      $("ledger").innerHTML = renderLedger(me.ledger);
+      $("recent-activity").innerHTML = me.ledger.length ? renderLedger(me.ledger.slice(0,3)) : `<div class="empty">Здесь появятся начисления и выплаты.</div>`;
+    } else {
+      $("report-submit-card").classList.add("hidden");
+      $("home-balance").textContent = "—";
+      $("recent-activity").innerHTML = `<div class="empty">Подайте заявку, чтобы присоединиться к команде.</div>`;
     }
     if (me.is_admin) {
-      $("admin-panel").classList.remove("hidden");
+      $("admin-shortcuts").classList.remove("hidden");
+      $("home-eyebrow").textContent = "Панель администратора";
+      $("home-title").textContent = "Рабочее пространство";
+      $("home-subtitle").textContent = "Заявки, отчёты команды и управление балансами.";
       loadAdmin();
     }
+    buildNavigation(me);
+    go("home");
   };
   const loadAdmin = async () => {
     const [applications, reports, users] = await Promise.all([
       api("/api/admin/applications"), api("/api/admin/reports"), api("/api/admin/users")
     ]);
     $("admin-applications").innerHTML = applications.length ? applications.map((a) =>
-      `<div class="entry"><div class="row"><strong>#${a.id} · ${a.kind === "job" ? "Работа" : "Сотрудничество"}</strong>${badge(a.status)}</div><p>${person(a)} ${a.username ? `(@${escapeHtml(a.username)})` : ""} · ID ${a.telegram_id}</p><p>${escapeHtml(a.position)}<br>${escapeHtml(a.message)}</p>${a.status === "pending" ? `<button data-app="${a.id}" data-decision="accepted">Принять</button><button class="danger" data-app="${a.id}" data-decision="rejected">Отклонить</button>` : ""}</div>`).join("") : `<p class="muted">Заявок пока нет.</p>`;
+      `<div class="entry"><div class="row"><strong>#${a.id} · ${a.kind === "job" ? "Работа" : "Сотрудничество"}</strong>${badge(a.status)}</div><p>${person(a)} ${a.username ? `(@${escapeHtml(a.username)})` : ""} · ID ${a.telegram_id}</p><p>${escapeHtml(a.position)}<br>${escapeHtml(a.message)}</p>${a.status === "pending" ? `<button data-app="${a.id}" data-decision="accepted">Принять</button><button class="danger" data-app="${a.id}" data-decision="rejected">Отклонить</button>` : ""}</div>`).join("") : `<div class="empty">Новых заявок нет.</div>`;
     $("admin-reports").innerHTML = reports.length ? reports.map((r) =>
-      `<div class="entry"><div class="row"><strong>Отчёт #${r.id}</strong>${badge(r.status)}</div><p>${person(r)} ${r.username ? `(@${escapeHtml(r.username)})` : ""} · ID ${r.telegram_id}</p><p>${escapeHtml(r.message)}</p>${(r.files || []).map((f) => `<div><a class="button secondary" href="/api/files/${encodeURIComponent(f.id)}">${escapeHtml(f.original_name)}</a></div>`).join("")}${r.status === "pending" ? `<button data-report="${r.id}" data-decision="approved">Одобрить</button><button class="danger" data-report="${r.id}" data-decision="rejected">Отклонить</button>` : ""}</div>`).join("") : `<p class="muted">Отчётов на проверке нет.</p>`;
-    $("admin-employees").innerHTML = users.filter((u) => u.employee).map((u) =>
-      `<div class="entry"><div class="row"><strong>${person(u.user)}</strong><span>${money(u.salary_cents)} / мес. · баланс ${money(u.balance_cents)}</span></div><small>${u.user.username ? "@"+escapeHtml(u.user.username)+" · " : ""}ID ${u.user.telegram_id}${u.wallet ? " · TRC20 "+escapeHtml(u.wallet) : " · кошелёк не указан"}</small><div><button class="secondary" data-salary-user="${u.user.telegram_id}">Изменить зарплату</button><button class="secondary" data-payout-user="${u.user.telegram_id}">Записать выплату</button></div></div>`).join("");
+      `<div class="entry"><div class="row"><strong>Отчёт #${r.id}</strong>${badge(r.status)}</div><p>${person(r)} ${r.username ? `(@${escapeHtml(r.username)})` : ""} · ID ${r.telegram_id}</p><p>${escapeHtml(r.message)}</p>${(r.files || []).map((f) => `<div><a class="button secondary" href="/api/files/${encodeURIComponent(f.id)}">${escapeHtml(f.original_name)}</a></div>`).join("")}${r.status === "pending" ? `<button data-report="${r.id}" data-decision="approved">Одобрить</button><button class="danger" data-report="${r.id}" data-decision="rejected">Отклонить</button>` : ""}</div>`).join("") : `<div class="empty">Отчётов на проверке нет.</div>`;
+    const employees = users.filter((u) => u.employee);
+    $("admin-employees").innerHTML = employees.length ? employees.map((u) =>
+      `<div class="entry"><div class="row"><strong>${person(u.user)}</strong><span>${money(u.salary_cents)} / мес.</span></div><small>${u.user.username ? "@"+escapeHtml(u.user.username)+" · " : ""}ID ${u.user.telegram_id}</small><div class="row"><span class="muted">Баланс ${money(u.balance_cents)}</span><button class="secondary" data-salary-user="${u.user.telegram_id}">Зарплата</button></div></div>`).join("") : `<div class="empty">Сотрудников пока нет.</div>`;
+    $("admin-payments").innerHTML = employees.length ? employees.map((u) =>
+      `<div class="entry"><div class="row"><span><strong>${person(u.user)}</strong><br><small>ID ${u.user.telegram_id} · ${u.wallet ? "TRC20 "+escapeHtml(u.wallet) : "кошелёк не указан"}</small></span><strong>${money(u.balance_cents)}</strong></div><button data-credit-user="${u.user.telegram_id}">Начислить</button><button class="secondary" data-payout-user="${u.user.telegram_id}">Записать выплату</button></div>`).join("") : `<div class="empty">Добавьте сотрудника, чтобы управлять балансом.</div>`;
     $("user-results").innerHTML = users.filter((u) => !u.employee).map((u) =>
       `<div class="entry row"><span><strong>${person(u.user)}</strong><br><small>${u.user.username ? "@"+escapeHtml(u.user.username)+" · " : ""}ID ${u.user.telegram_id}</small></span><button data-enroll-user="${u.user.telegram_id}">Добавить в команду</button></div>`).join("");
+  };
+  const openAction = (type, telegramId) => {
+    actionType = type;
+    actionUserId = telegramId;
+    const labels = {
+      credit:["Начислить на баланс","Средства сразу появятся на внутреннем балансе. Подтверждение сотрудника не требуется.","Сумма начисления","За что начисление?","Начислить"],
+      payout:["Записать выплату","Списание из внутреннего баланса после отдельного ручного перевода USDT.","Сумма выплаты","TXID или примечание","Записать выплату"],
+      salary:["Изменить фиксированную зарплату","Новая фиксированная месячная сумма в USDT.","Зарплата за месяц","Описание (необязательно)","Сохранить зарплату"]
+    }[type];
+    $("action-title").textContent = labels[0]; $("action-description").textContent = labels[1];
+    $("action-amount-label").textContent = labels[2]; $("action-note-label").textContent = labels[3];
+    $("action-submit").textContent = labels[4]; $("action-amount").value = "";
+    $("action-note").value = ""; go("admin-action");
   };
   $("application-form").addEventListener("submit", (event) => {
     event.preventDefault();
     run(async () => {
-      await api("/api/applications", {kind:$("application-kind").value, position:$("position").value, message:$("application-message").value});
-      $("application-form").reset();
-      toast("Заявка отправлена. Мы сообщим результат в Telegram.");
-      renderMe(await api("/api/me"));
+      await api("/api/applications", {kind:$("application-kind").value,position:$("position").value,message:$("application-message").value});
+      $("application-form").reset(); toast("Заявка отправлена.");
+      renderMe(await api("/api/me")); go("application");
     });
   });
   $("wallet-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    run(async () => { await api("/api/wallet", {wallet:$("wallet").value}); toast("Реквизиты сохранены."); });
+    run(async () => { await api("/api/wallet",{wallet:$("wallet").value}); toast("Кошелёк сохранён."); });
   });
   $("report-form").addEventListener("submit", (event) => {
     event.preventDefault();
     run(async () => {
-      const report = await api("/api/reports", {message:$("report-message").value});
+      const report = await api("/api/reports",{message:$("report-message").value});
       const file = $("report-file").files[0];
       if (file) {
-        const form = new FormData();
-        form.append("report_id", report.id);
-        form.append("file", file);
-        const result = await fetch("/api/report-files", {method:"POST", headers:{"X-Telegram-Init-Data":initData}, body:form});
-        const data = await result.json();
-        if (!result.ok) throw new Error(data.error || "Не удалось загрузить файл");
+        const form = new FormData(); form.append("report_id",report.id); form.append("file",file);
+        const response = await fetch("/api/report-files",{method:"POST",headers:{"X-Telegram-Init-Data":initData},body:form});
+        const result = await response.json(); if (!response.ok) throw new Error(result.error || "Не удалось загрузить файл");
       }
-      $("report-form").reset();
-      toast("Отчёт отправлен на проверку.");
-      renderMe(await api("/api/me"));
+      $("report-form").reset(); toast("Отчёт отправлен на проверку.");
+      renderMe(await api("/api/me")); go("reports");
+    });
+  });
+  $("admin-action-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    run(async () => {
+      const amount = $("action-amount").value;
+      const note = $("action-note").value;
+      const route = actionType === "salary" ? `/api/admin/employees/${actionUserId}` : `/api/admin/employees/${actionUserId}/${actionType}`;
+      const body = actionType === "salary" ? {monthly_salary:amount} : actionType === "credit" ? {amount,description:note} : {amount,reference:note};
+      await api(route,body);
+      toast(actionType === "credit" ? "Средства сразу начислены на баланс." : actionType === "payout" ? "Выплата записана, сумма списана с баланса." : "Зарплата обновлена.");
+      await loadAdmin(); renderMe(await api("/api/me")); go(actionType === "salary" ? "admin-team" : "admin-payments");
     });
   });
   document.addEventListener("click", (event) => {
-    const button = event.target.closest("button");
-    if (!button) return;
+    const link = event.target.closest('a[href^="/api/files/"]');
+    if (!link) return;
+    event.preventDefault();
+    fetch(link.href,{headers:{"X-Telegram-Init-Data":initData}}).then(async (response) => {
+      if (!response.ok) throw new Error("Не удалось скачать файл");
+      const blob = await response.blob(), objectUrl = URL.createObjectURL(blob), download = document.createElement("a");
+      download.href = objectUrl; download.download = link.textContent; download.click(); URL.revokeObjectURL(objectUrl);
+    }).catch((error) => toast(error.message,true));
+  });
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("button"); if (!button) return;
+    if (button.dataset.go) go(button.dataset.go);
     if (button.dataset.app) run(async () => {
       const note = button.dataset.decision === "rejected" ? (prompt("Причина отказа (необязательно):") || "") : "";
-      await api(`/api/admin/applications/${button.dataset.app}/decision`, {decision:button.dataset.decision,note});
+      await api(`/api/admin/applications/${button.dataset.app}/decision`,{decision:button.dataset.decision,note});
       toast("Решение по заявке сохранено."); await loadAdmin();
     });
     if (button.dataset.report) run(async () => {
       const note = button.dataset.decision === "rejected" ? (prompt("Причина отказа (необязательно):") || "") : "";
-      const result = await api(`/api/admin/reports/${button.dataset.report}/decision`, {decision:button.dataset.decision,note});
-      toast(result.credited_cents ? `Отчёт одобрен. Начислена зарплата за ${result.period}: ${money(result.credited_cents)}.` : "Решение по отчёту сохранено; начисление за этот месяц уже было или отчёт отклонён.");
-      await loadAdmin(); await renderMe(await api("/api/me"));
+      const result = await api(`/api/admin/reports/${button.dataset.report}/decision`,{decision:button.dataset.decision,note});
+      toast(result.credited_cents ? `Начислена зарплата за ${result.period}: ${money(result.credited_cents)}.` : "Решение по отчёту сохранено; начисление за месяц уже было или отчёт отклонён.");
+      await loadAdmin(); renderMe(await api("/api/me")); go("admin-reports");
     });
     if (button.dataset.enrollUser) run(async () => {
       const salary = prompt("Фиксированная зарплата в USDT за месяц:");
       if (salary === null) return;
-      await api(`/api/admin/employees/${button.dataset.enrollUser}`, {monthly_salary:salary});
+      await api(`/api/admin/employees/${button.dataset.enrollUser}`,{monthly_salary:salary});
       toast("Сотрудник добавлен."); await loadAdmin();
     });
-    if (button.dataset.salaryUser) run(async () => {
-      const salary = prompt("Новая фиксированная зарплата в USDT за месяц:");
-      if (salary === null) return;
-      await api(`/api/admin/employees/${button.dataset.salaryUser}`, {monthly_salary:salary});
-      toast("Зарплата обновлена."); await loadAdmin();
-    });
-    if (button.dataset.payoutUser) run(async () => {
-      const amount = prompt("Сумма ручной выплаты в USDT (не больше баланса):");
-      if (amount === null) return;
-      const reference = prompt("TXID или примечание о ручном переводе:") || "";
-      await api(`/api/admin/employees/${button.dataset.payoutUser}/payout`, {amount,reference});
-      toast("Ручная выплата записана в баланс."); await loadAdmin();
-    });
+    if (button.dataset.salaryUser) openAction("salary",button.dataset.salaryUser);
+    if (button.dataset.creditUser) openAction("credit",button.dataset.creditUser);
+    if (button.dataset.payoutUser) openAction("payout",button.dataset.payoutUser);
   });
   let searchTimer;
   $("user-search").addEventListener("input", () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => run(async () => {
-      const q = encodeURIComponent($("user-search").value.trim());
-      const users = await api(`/api/admin/users?q=${q}`);
+      const users = await api(`/api/admin/users?q=${encodeURIComponent($("user-search").value.trim())}`);
       $("user-results").innerHTML = users.filter((u) => !u.employee).map((u) =>
         `<div class="entry row"><span><strong>${person(u.user)}</strong><br><small>${u.user.username ? "@"+escapeHtml(u.user.username)+" · " : ""}ID ${u.user.telegram_id}</small></span><button data-enroll-user="${u.user.telegram_id}">Добавить в команду</button></div>`).join("");
-    }), 250);
+    }),250);
   });
-  document.addEventListener("click", (event) => {
-    const link = event.target.closest('a[href^="/api/files/"]');
-    if (link) {
-      event.preventDefault();
-      fetch(link.href, {headers:{"X-Telegram-Init-Data":initData}}).then(async (response) => {
-        if (!response.ok) throw new Error("Не удалось скачать файл");
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const download = document.createElement("a");
-        download.href = objectUrl; download.download = link.textContent; download.click();
-        URL.revokeObjectURL(objectUrl);
-      }).catch((error) => toast(error.message, true));
-    }
-  });
-  if (!initData) {
-    $("auth-warning").classList.remove("hidden");
-  } else {
-    tg.ready(); tg.expand();
-    run(async () => renderMe(await api("/api/me")));
-  }
+  if (!initData) $("auth-warning").classList.remove("hidden");
+  else { tg.ready(); tg.expand(); run(async () => renderMe(await api("/api/me"))); }
 })();
 </script>
 </body>

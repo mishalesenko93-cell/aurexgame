@@ -131,7 +131,7 @@ def initialize_database():
             CREATE TABLE IF NOT EXISTS ledger (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 telegram_id INTEGER NOT NULL REFERENCES employees(telegram_id),
-                kind TEXT NOT NULL CHECK (kind IN ('salary', 'payout')),
+                kind TEXT NOT NULL CHECK (kind IN ('salary', 'credit', 'payout')),
                 amount_cents INTEGER NOT NULL,
                 description TEXT NOT NULL DEFAULT '',
                 report_id INTEGER REFERENCES reports(id),
@@ -144,6 +144,34 @@ def initialize_database():
                 ON ledger(telegram_id, created_at);
             """
         )
+        ledger_sql = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='ledger'"
+        ).fetchone()["sql"]
+        if "'credit'" not in ledger_sql:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("DROP INDEX IF EXISTS ledger_employee_created")
+            db.execute("ALTER TABLE ledger RENAME TO ledger_legacy")
+            db.execute(
+                """CREATE TABLE ledger (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    telegram_id INTEGER NOT NULL REFERENCES employees(telegram_id),
+                    kind TEXT NOT NULL CHECK (kind IN ('salary', 'credit', 'payout')),
+                    amount_cents INTEGER NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    report_id INTEGER REFERENCES reports(id),
+                    created_at TEXT NOT NULL
+                )"""
+            )
+            db.execute(
+                """INSERT INTO ledger
+                   (id, telegram_id, kind, amount_cents, description, report_id, created_at)
+                   SELECT id, telegram_id, kind, amount_cents, description, report_id, created_at
+                   FROM ledger_legacy"""
+            )
+            db.execute("DROP TABLE ledger_legacy")
+            db.execute(
+                "CREATE INDEX ledger_employee_created ON ledger(telegram_id, created_at)"
+            )
 
 
 def utc_now():
@@ -357,6 +385,28 @@ def record_payout(telegram_id, amount_cents, reference=""):
                (telegram_id, kind, amount_cents, description, created_at)
                VALUES (?, 'payout', ?, ?, ?)""",
             (telegram_id, -amount_cents, reference.strip()[:200] or "Manual USDT payout", now),
+        )
+
+
+def credit_balance(telegram_id, amount_cents, description=""):
+    now = utc_now()
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        employee = db.execute(
+            "SELECT active FROM employees WHERE telegram_id=?", (telegram_id,)
+        ).fetchone()
+        if not employee or not employee["active"]:
+            raise APIError(404, "Active employee not found")
+        db.execute(
+            """INSERT INTO ledger
+               (telegram_id, kind, amount_cents, description, created_at)
+               VALUES (?, 'credit', ?, ?, ?)""",
+            (
+                telegram_id,
+                amount_cents,
+                description.strip()[:200] or "Admin balance credit",
+                now,
+            ),
         )
 
 
@@ -600,10 +650,8 @@ class Handler(BaseHTTPRequestHandler):
         return value
 
     def authenticated_user(self, data=None):
-        init_data = (
-            self.headers.get("X-Telegram-Init-Data", "")
-            if data is None
-            else data.get("initData", "")
+        init_data = (data or {}).get("initData") or self.headers.get(
+            "X-Telegram-Init-Data", ""
         )
         user = validate_init_data(init_data)
         if not user:
@@ -796,6 +844,15 @@ class Handler(BaseHTTPRequestHandler):
                     int(payout_match.group(1)),
                     money_to_cents(data.get("amount")),
                     str(data.get("reference", "")),
+                )
+                return self.send_json(200, {"ok": True})
+            credit_match = re.fullmatch(r"/api/admin/employees/(\d+)/credit", path)
+            if credit_match:
+                self.require_admin(user)
+                credit_balance(
+                    int(credit_match.group(1)),
+                    money_to_cents(data.get("amount")),
+                    str(data.get("description", "")),
                 )
                 return self.send_json(200, {"ok": True})
             raise APIError(404, "Not found")

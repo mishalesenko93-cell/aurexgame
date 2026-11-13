@@ -36,8 +36,9 @@ Use the *same* persistent disk for both `DATABASE_PATH` and `STORAGE_DIR`. Teleg
 - Users start the bot and open its Mini App. The backend verifies Telegram's signed, time-limited `initData`; usernames are display/search fields only.
 - Anyone may submit one pending job or collaboration application. Admins can accept/reject applications, and separately enroll a user who has started the bot, setting a fixed monthly USDT-denominated salary.
 - Active employees can edit their TRC20 wallet and submit work reports with an optional attachment. Admins review and approve/reject every report.
-- An approved report creates one internal salary credit for that employee per UTC calendar month. Approving additional reports during that month does not duplicate salary. This is an internal balance only.
-- No on-chain transaction is sent. Admins make any USDT transfer outside the app and record the manual payout (amount plus optional TXID/note), which deducts from the internal balance.
+- An approved report creates one internal salary credit for that employee per UTC calendar month. Approving additional reports during that month does not duplicate salary. Admins can also credit any active employee's balance at any time from the separate Finance screen; the credit is immediate and does not require employee approval.
+- No on-chain transaction is sent. Admins make any USDT transfer outside the app and record the manual payout (amount plus optional TXID/note), which deducts from the internal balance without an employee approval step.
+- The Mini App uses separate navigation for home, reports, balance/payouts, wallet, applications, and admin workflows.
 - Upload limit is 10 MiB. Only PDF, PNG, JPG/JPEG, WEBP, TXT, CSV, and ZIP files with matching content are accepted. Files are stored under the configured private storage directory with generated names.
 
 ## Checks
