@@ -28,6 +28,7 @@ Create a **separate Render Web Service** from this repository with `coop` as its
 | `DATABASE_PATH` | No | `coop/.data/coop.sqlite3` | SQLite database path; use `/var/data/coop.sqlite3` with a persistent Render disk. |
 | `STORAGE_DIR` | No | `coop/.data` | Directory containing private uploads; use `/var/data` with a persistent disk. Uploads are not served from the public web root. |
 | `ALLOWED_ORIGIN` | No | same-origin only | Optional exact browser origin if serving the Mini App from a different domain. |
+| `PAYOUT_UTC_OFFSET_HOURS` | No | `3` | Fixed UTC offset for the monthly withdrawal window; default is UTC+3. Withdrawal requests open on the 5th and 6th, local time. |
 
 Use the *same* persistent disk for both `DATABASE_PATH` and `STORAGE_DIR`. Telegram bot polling requires that only one service instance uses this token at a time; do not run overlapping deployments or multiple replicas with the same bot.
 
@@ -38,6 +39,7 @@ Use the *same* persistent disk for both `DATABASE_PATH` and `STORAGE_DIR`. Teleg
 - Active employees can edit their TRC20 wallet and submit work reports with an optional attachment. Admins review and approve/reject every report.
 - An approved report creates one internal salary credit for that employee per UTC calendar month. Approving additional reports during that month does not duplicate salary. Admins can also credit any active employee's balance at any time from the separate Finance screen; the credit is immediate and does not require employee approval.
 - No on-chain transaction is sent. Admins make any USDT transfer outside the app and record the manual payout (amount plus optional TXID/note), which deducts from the internal balance without an employee approval step.
+- Employees can request a withdrawal only between the 5th at 00:00 and the end of the 6th in `PAYOUT_UTC_OFFSET_HOURS` time. Requests reserve balance while pending and include the selected TRC20 wallet. Admins record the external transfer or reject the request; employee confirmation is not required.
 - The Mini App uses separate navigation for home, reports, balance/payouts, wallet, applications, and admin workflows.
 - Upload limit is 10 MiB. Only PDF, PNG, JPG/JPEG, WEBP, TXT, CSV, and ZIP files with matching content are accepted. Files are stored under the configured private storage directory with generated names.
 

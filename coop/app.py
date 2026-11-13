@@ -15,7 +15,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email import policy
 from email.parser import BytesParser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -137,11 +137,24 @@ def initialize_database():
                 report_id INTEGER REFERENCES reports(id),
                 created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS payout_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL REFERENCES employees(telegram_id),
+                amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+                wallet TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'paid', 'rejected')),
+                admin_note TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                decided_at TEXT
+            );
             CREATE INDEX IF NOT EXISTS applications_status_created
                 ON applications(status, created_at);
             CREATE INDEX IF NOT EXISTS reports_status_created ON reports(status, created_at);
             CREATE INDEX IF NOT EXISTS ledger_employee_created
                 ON ledger(telegram_id, created_at);
+            CREATE INDEX IF NOT EXISTS payout_requests_status_created
+                ON payout_requests(status, created_at);
             """
         )
         ledger_sql = db.execute(
@@ -185,6 +198,36 @@ def period_for(timestamp=None):
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc).strftime("%Y-%m")
+
+
+def payout_window_status(now=None):
+    offset_hours = int(os.environ.get("PAYOUT_UTC_OFFSET_HOURS", "3"))
+    if not -12 <= offset_hours <= 14:
+        raise ValueError("PAYOUT_UTC_OFFSET_HOURS must be between -12 and 14")
+    local_timezone = timezone(timedelta(hours=offset_hours))
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    local_now = current.astimezone(local_timezone)
+    is_open = local_now.day in (5, 6)
+    if is_open:
+        next_open = datetime(local_now.year, local_now.month, 5, tzinfo=local_timezone)
+        closes_at = datetime(local_now.year, local_now.month, 7, tzinfo=local_timezone)
+    else:
+        if local_now.day < 5:
+            year, month = local_now.year, local_now.month
+        elif local_now.month == 12:
+            year, month = local_now.year + 1, 1
+        else:
+            year, month = local_now.year, local_now.month + 1
+        next_open = datetime(year, month, 5, tzinfo=local_timezone)
+        closes_at = None
+    return {
+        "open": is_open,
+        "timezone": f"UTC{offset_hours:+03d}:00",
+        "next_open_at": next_open.isoformat(timespec="minutes"),
+        "closes_at": closes_at.isoformat(timespec="minutes") if closes_at else None,
+    }
 
 
 def validate_init_data(init_data, bot_token=None, now=None, max_age=86400):
@@ -366,6 +409,9 @@ def decide_report(report_id, decision, note=""):
 
 
 def record_payout(telegram_id, amount_cents, reference=""):
+    window = payout_window_status()
+    if not window["open"]:
+        raise APIError(409, f"Запросы на вывод доступны только 5-го и 6-го числа. Следующее окно: {window['next_open_at']}")
     now = utc_now()
     with connect_db() as db:
         db.execute("BEGIN IMMEDIATE")
@@ -378,7 +424,11 @@ def record_payout(telegram_id, amount_cents, reference=""):
             "SELECT COALESCE(SUM(amount_cents), 0) FROM ledger WHERE telegram_id=?",
             (telegram_id,),
         ).fetchone()[0]
-        if amount_cents > balance:
+        reserved = db.execute(
+            "SELECT COALESCE(SUM(amount_cents), 0) FROM payout_requests WHERE telegram_id=? AND status='pending'",
+            (telegram_id,),
+        ).fetchone()[0]
+        if amount_cents > balance - reserved:
             raise APIError(409, "Payout exceeds the available balance")
         db.execute(
             """INSERT INTO ledger
@@ -386,6 +436,87 @@ def record_payout(telegram_id, amount_cents, reference=""):
                VALUES (?, 'payout', ?, ?, ?)""",
             (telegram_id, -amount_cents, reference.strip()[:200] or "Manual USDT payout", now),
         )
+
+
+def request_payout(telegram_id, amount_cents, wallet):
+    window = payout_window_status()
+    if not window["open"]:
+        raise APIError(409, f"Запросить вывод можно только 5-го и 6-го числа. Следующее окно: {window['next_open_at']}")
+    wallet = wallet.strip()
+    if not TRC20_RE.fullmatch(wallet):
+        raise ValueError("Select or enter a valid TRC20 wallet address")
+    now = utc_now()
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        employee = db.execute(
+            "SELECT active FROM employees WHERE telegram_id=?", (telegram_id,)
+        ).fetchone()
+        if not employee or not employee["active"]:
+            raise APIError(403, "Only active employees can request a withdrawal")
+        balance = db.execute(
+            "SELECT COALESCE(SUM(amount_cents), 0) FROM ledger WHERE telegram_id=?",
+            (telegram_id,),
+        ).fetchone()[0]
+        reserved = db.execute(
+            "SELECT COALESCE(SUM(amount_cents), 0) FROM payout_requests WHERE telegram_id=? AND status='pending'",
+            (telegram_id,),
+        ).fetchone()[0]
+        if amount_cents > balance - reserved:
+            raise APIError(409, "Withdrawal exceeds the available balance")
+        cursor = db.execute(
+            """INSERT INTO payout_requests (telegram_id, amount_cents, wallet, created_at)
+               VALUES (?, ?, ?, ?)""",
+            (telegram_id, amount_cents, wallet, now),
+        )
+        return cursor.lastrowid
+
+
+def decide_payout_request(request_id, decision, note=""):
+    if decision not in {"paid", "rejected"}:
+        raise ValueError("Decision must be paid or rejected")
+    if decision == "paid":
+        window = payout_window_status()
+        if not window["open"]:
+            raise APIError(409, f"Выплаты можно проводить только 5-го и 6-го числа. Следующее окно: {window['next_open_at']}")
+    now = utc_now()
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        request = db.execute(
+            """SELECT p.*, e.active FROM payout_requests p
+               JOIN employees e USING (telegram_id) WHERE p.id=?""",
+            (request_id,),
+        ).fetchone()
+        if not request:
+            raise APIError(404, "Withdrawal request not found")
+        if request["status"] != "pending":
+            raise APIError(409, "Withdrawal request has already been processed")
+        if decision == "paid":
+            balance = db.execute(
+                "SELECT COALESCE(SUM(amount_cents), 0) FROM ledger WHERE telegram_id=?",
+                (request["telegram_id"],),
+            ).fetchone()[0]
+            if request["amount_cents"] > balance:
+                raise APIError(409, "Balance no longer covers this withdrawal")
+            db.execute(
+                """INSERT INTO ledger
+                   (telegram_id, kind, amount_cents, description, created_at)
+                   VALUES (?, 'payout', ?, ?, ?)""",
+                (
+                    request["telegram_id"],
+                    -request["amount_cents"],
+                    f"Withdrawal request #{request_id} · {note.strip()[:120] or request['wallet']}",
+                    now,
+                ),
+            )
+        db.execute(
+            """UPDATE payout_requests SET status=?, admin_note=?, decided_at=? WHERE id=?""",
+            (decision, note.strip()[:200], now, request_id),
+        )
+        return {
+            "telegram_id": request["telegram_id"],
+            "amount_cents": request["amount_cents"],
+            "status": decision,
+        }
 
 
 def credit_balance(telegram_id, amount_cents, description=""):
@@ -507,6 +638,16 @@ def summary_for(telegram_id):
             "SELECT * FROM applications WHERE telegram_id=? ORDER BY id DESC LIMIT 10",
             (telegram_id,),
         ).fetchall()
+        payout_requests = db.execute(
+            """SELECT id, amount_cents, wallet, status, admin_note, created_at, decided_at
+               FROM payout_requests WHERE telegram_id=? ORDER BY id DESC LIMIT 20""",
+            (telegram_id,),
+        ).fetchall()
+        reserved_payout = db.execute(
+            """SELECT COALESCE(SUM(amount_cents), 0) FROM payout_requests
+               WHERE telegram_id=? AND status='pending'""",
+            (telegram_id,),
+        ).fetchone()[0]
         report_ids = [report["id"] for report in reports]
         files = {}
         if report_ids:
@@ -523,12 +664,15 @@ def summary_for(telegram_id):
         "wallet": user["wallet"],
         "employee": bool(employee),
         "monthly_salary_cents": employee["monthly_salary_cents"] if employee else 0,
-        "balance_cents": balance,
+        "balance_cents": balance - reserved_payout,
+        "reserved_payout_cents": reserved_payout,
         "ledger": [dict(row) for row in ledger],
         "reports": [
             {**dict(row), "files": files.get(row["id"], [])} for row in reports
         ],
         "applications": [dict(row) for row in applications],
+        "payout_requests": [dict(row) for row in payout_requests],
+        "payout_window": payout_window_status(),
     }
 
 
@@ -676,6 +820,17 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if path == "/aurex-avatar.png":
+            image = ROOT / "aurex-avatar.png"
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Length", str(image.stat().st_size))
+            self.end_headers()
+            with image.open("rb") as source:
+                self.wfile.write(source.read())
+            return
         if path == "/health":
             return self.send_json(200, {"ok": True, "service": "AUREX Company"})
         try:
@@ -748,6 +903,29 @@ class Handler(BaseHTTPRequestHandler):
                         ]
                         result.append(item)
                 return self.send_json(200, result)
+            if path == "/api/admin/payout-requests":
+                self.require_admin(user)
+                with connect_db() as db:
+                    rows = db.execute(
+                        """SELECT p.*, u.username, u.first_name, u.last_name
+                           FROM payout_requests p JOIN users u USING (telegram_id)
+                           ORDER BY CASE p.status WHEN 'pending' THEN 0 ELSE 1 END, p.id DESC
+                           LIMIT 100"""
+                    ).fetchall()
+                return self.send_json(
+                    200,
+                    [
+                        {
+                            **dict(row),
+                            "name": " ".join(
+                                part for part in (row["first_name"], row["last_name"]) if part
+                            )
+                            or row["username"]
+                            or str(row["telegram_id"]),
+                        }
+                        for row in rows
+                    ],
+                )
             file_match = re.fullmatch(r"/api/files/([a-f0-9]{32})", path)
             if file_match:
                 with connect_db() as db:
@@ -811,6 +989,17 @@ class Handler(BaseHTTPRequestHandler):
                     f"@{user.get('username') or uid}"
                 )
                 return self.send_json(201, {"id": report_id})
+            if path == "/api/payout-requests":
+                request_id = request_payout(
+                    uid,
+                    money_to_cents(data.get("amount")),
+                    str(data.get("wallet", "")),
+                )
+                notify_admins(
+                    f"Запрос на выплату AUREX #{request_id}: {money_to_cents(data.get('amount')) / 100:.2f} USDT от "
+                    f"@{user.get('username') or uid}"
+                )
+                return self.send_json(201, {"id": request_id})
             application_match = re.fullmatch(r"/api/admin/applications/(\d+)/decision", path)
             if application_match:
                 self.require_admin(user)
@@ -855,6 +1044,24 @@ class Handler(BaseHTTPRequestHandler):
                     str(data.get("description", "")),
                 )
                 return self.send_json(200, {"ok": True})
+            payout_request_match = re.fullmatch(
+                r"/api/admin/payout-requests/(\d+)/decision", path
+            )
+            if payout_request_match:
+                self.require_admin(user)
+                result = decide_payout_request(
+                    int(payout_request_match.group(1)),
+                    data.get("decision"),
+                    str(data.get("note", "")),
+                )
+                return self.send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "status": result["status"],
+                        "amount_cents": result["amount_cents"],
+                    },
+                )
             raise APIError(404, "Not found")
         except APIError as error:
             self.send_json(error.status, {"error": error.message})

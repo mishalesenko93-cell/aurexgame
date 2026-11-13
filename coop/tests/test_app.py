@@ -9,6 +9,7 @@ import unittest
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -141,9 +142,63 @@ class CoopAppTests(unittest.TestCase):
         report_id = app.create_report(123, "Monthly report")
         app.decide_report(report_id, "approved")
         with self.assertRaises(app.APIError):
-            app.record_payout(123, 250001)
-        app.record_payout(123, 50000, "manual TXID")
+            with patch.object(app, "payout_window_status", return_value={"open": True}):
+                app.record_payout(123, 250001)
+        with patch.object(app, "payout_window_status", return_value={"open": True}):
+            app.record_payout(123, 50000, "manual TXID")
         self.assertEqual(app.summary_for(123)["balance_cents"], 200000)
+
+    def test_withdrawal_window_includes_all_of_local_days_five_and_six(self):
+        opening = datetime(2026, 11, 4, 21, tzinfo=timezone.utc)
+        sixth = datetime(2026, 11, 6, 12, tzinfo=timezone.utc)
+        closing = datetime(2026, 11, 6, 21, tzinfo=timezone.utc)
+        with patch.dict("os.environ", {"PAYOUT_UTC_OFFSET_HOURS": "3"}):
+            self.assertTrue(app.payout_window_status(opening)["open"])
+            self.assertTrue(app.payout_window_status(sixth)["open"])
+            status = app.payout_window_status(closing)
+        self.assertFalse(status["open"])
+        self.assertEqual(status["next_open_at"], "2026-12-05T00:00+03:00")
+
+    def test_withdrawal_request_reserves_balance_until_paid(self):
+        app.credit_balance(123, 2500, "Test balance")
+        open_window = {"open": True, "next_open_at": "", "closes_at": ""}
+        wallet = "T" + "1" * 33
+        with patch.object(app, "payout_window_status", return_value=open_window):
+            request_id = app.request_payout(123, 2000, wallet)
+            self.assertEqual(app.summary_for(123)["balance_cents"], 500)
+            with self.assertRaises(app.APIError):
+                app.request_payout(123, 501, wallet)
+            result = app.decide_payout_request(request_id, "paid", "TXID")
+        self.assertEqual(result["status"], "paid")
+        self.assertEqual(app.summary_for(123)["balance_cents"], 500)
+        self.assertEqual(app.summary_for(123)["payout_requests"][0]["status"], "paid")
+
+    def test_withdrawal_request_is_closed_outside_the_monthly_window(self):
+        closed_window = {
+            "open": False,
+            "next_open_at": "2026-12-05T00:00+03:00",
+            "closes_at": None,
+        }
+        with patch.object(app, "payout_window_status", return_value=closed_window):
+            with self.assertRaises(app.APIError) as error:
+                app.request_payout(123, 100, "T" + "1" * 33)
+        self.assertEqual(error.exception.status, 409)
+
+    def test_aurex_avatar_is_served_as_a_public_image_asset(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+        thread = threading.Thread(target=server.serve_forever)
+        thread.start()
+        try:
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{server.server_port}/aurex-avatar.png",
+                timeout=3,
+            ) as response:
+                self.assertEqual(response.headers.get_content_type(), "image/png")
+                self.assertTrue(response.read().startswith(b"\x89PNG\r\n\x1a\n"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
 
     def test_admin_can_credit_balance_without_report_or_employee_confirmation(self):
         app.credit_balance(123, 7250, "One-time bonus")
