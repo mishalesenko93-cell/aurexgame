@@ -3,12 +3,13 @@ AUREX Miner — бот + API для оплаты Telegram Stars.
 Без внешних зависимостей (только стандартная библиотека Python 3.8+).
 
 Переменные окружения:
-  BOT_TOKEN   — 9099411906:AAEb4rm91FXpUmjrJ0PT3OuY4f8f6LFbtDE
+  BOT_TOKEN   — токен бота из @BotFather
   WEBAPP_URL  — https://mishalesenko93-cell.github.io/aurexgame/
   PORT        — 8080
-ALLOW_ORIGIN — "https://mishalesenko93-cell.github.io"
+  ALLOW_ORIGIN — https://mishalesenko93-cell.github.io
+  DATA_DIR    — каталог постоянного диска (если настроен)
 """
-import os, json, hmac, hashlib, time, threading, urllib.request, urllib.parse
+import os, json, hmac, hashlib, time, threading, urllib.request, urllib.parse, math
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -16,7 +17,10 @@ WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://mishalesenko93-cell.github.io
 PORT = int(os.environ.get("PORT", "8080"))
 ALLOW_ORIGIN = os.environ.get("ALLOW_ORIGIN", "https://mishalesenko93-cell.github.io")
 CHANNEL = "https://t.me/AurexCompany"
-DB_FILE = "purchases.json"
+DATA_DIR = os.environ.get("DATA_DIR", ".")
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_FILE = os.path.join(DATA_DIR, "purchases.json")
+SCORES_FILE = os.path.join(DATA_DIR, "leaderboard.json")
 API = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
 # Цены в Telegram Stars (XTR). Должны совпадать с index.html
@@ -41,6 +45,13 @@ def db_load():
         return {}
 
 
+def json_save(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    os.replace(tmp, path)
+
+
 def db_add(user_id, item, charge_id):
     with lock:
         db = db_load()
@@ -48,10 +59,7 @@ def db_add(user_id, item, charge_id):
         if any(r.get("charge") == charge_id for r in rec):  # защита от дублей
             return
         rec.append({"item": item, "charge": charge_id, "ts": int(time.time())})
-        tmp = DB_FILE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(db, f, ensure_ascii=False)
-        os.replace(tmp, DB_FILE)
+        json_save(DB_FILE, db)
 
 
 def db_counts(user_id):
@@ -61,6 +69,36 @@ def db_counts(user_id):
     for r in rec:
         out[r["item"]] = out.get(r["item"], 0) + 1
     return out
+
+
+def scores_load():
+    try:
+        with open(SCORES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def score_upsert(user, score):
+    uid = str(user["id"])
+    name = " ".join(part for part in (user.get("first_name"), user.get("last_name")) if part).strip()
+    name = name or user.get("username") or "Игрок"
+    with lock:
+        scores = scores_load()
+        previous = scores.get(uid, {})
+        scores[uid] = {
+            "name": name[:64],
+            "score": max(float(previous.get("score", 0)), score),
+        }
+        json_save(SCORES_FILE, scores)
+        ordered = sorted(scores.items(), key=lambda entry: entry[1].get("score", 0), reverse=True)
+        rank = next(i for i, (player_id, _) in enumerate(ordered, 1) if player_id == uid)
+        players = [
+            {"name": item.get("name", "Игрок"), "score": item.get("score", 0), "isMe": player_id == uid}
+            for player_id, item in ordered
+        ]
+    return {"players": players, "rank": rank, "count": len(players)}
 
 
 # ---------- Telegram API ----------
@@ -144,6 +182,15 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/purchases":
             return self._send(200, {"items": db_counts(uid)})
+
+        if self.path == "/api/score":
+            score = data.get("score")
+            if isinstance(score, bool) or not isinstance(score, (int, float)) or not 0 <= score <= 1e15 or not math.isfinite(score):
+                return self._send(400, {"error": "invalid score"})
+            return self._send(200, score_upsert(user, float(score)))
+
+        if self.path == "/api/leaderboard":
+            return self._send(200, score_upsert(user, 0))
 
         self._send(404, {"error": "not found"})
 
