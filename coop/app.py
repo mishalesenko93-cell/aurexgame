@@ -30,6 +30,7 @@ UPLOAD_DIR = STORAGE_DIR / "uploads"
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 WEBAPP_URL = os.environ.get("WEBAPP_URL") or os.environ.get("RENDER_EXTERNAL_URL", "")
 PORT = int(os.environ.get("PORT", "8080"))
+KEEPALIVE_INTERVAL_SECONDS = int(os.environ.get("KEEPALIVE_INTERVAL_SECONDS", "60"))
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_JSON_BYTES = 1024 * 1024
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "webp", "txt", "csv", "zip"}
@@ -740,6 +741,31 @@ def poll_telegram():
             time.sleep(3)
 
 
+def ping_service_once(url):
+    request = urllib.request.Request(url, headers={"User-Agent": "AUREX-Coop-Keepalive/1.0"})
+    with urllib.request.urlopen(request, timeout=15) as response:
+        if response.status != 200:
+            raise RuntimeError(f"Health check returned HTTP {response.status}")
+        return response.status
+
+
+def keepalive():
+    service_url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+    if not service_url:
+        LOGGER.info("Keepalive disabled: RENDER_EXTERNAL_URL is not set")
+        return
+    if KEEPALIVE_INTERVAL_SECONDS < 30:
+        raise ValueError("KEEPALIVE_INTERVAL_SECONDS must be at least 30")
+    health_url = service_url + "/health"
+    while True:
+        time.sleep(KEEPALIVE_INTERVAL_SECONDS)
+        try:
+            ping_service_once(health_url)
+            LOGGER.info("Keepalive ping sent to the service health endpoint")
+        except (URLError, TimeoutError, RuntimeError) as error:
+            LOGGER.warning("Keepalive ping failed: %s", error)
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "AUREXCoop/1.0"
 
@@ -1153,6 +1179,7 @@ def main():
     except Exception:
         LOGGER.exception("Could not configure Telegram Mini App menu button")
     threading.Thread(target=poll_telegram, daemon=True).start()
+    threading.Thread(target=keepalive, daemon=True).start()
     LOGGER.info("AUREX Company service listening on port %s", PORT)
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
 

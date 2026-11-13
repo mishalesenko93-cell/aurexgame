@@ -29,8 +29,11 @@ Create a **separate Render Web Service** from this repository with `coop` as its
 | `STORAGE_DIR` | No | `coop/.data` | Directory containing private uploads; use `/var/data` with a persistent disk. Uploads are not served from the public web root. |
 | `ALLOWED_ORIGIN` | No | same-origin only | Optional exact browser origin if serving the Mini App from a different domain. |
 | `PAYOUT_UTC_OFFSET_HOURS` | No | `3` | Fixed UTC offset for the monthly withdrawal window; default is UTC+3. Withdrawal requests open on the 5th and 6th, local time. |
+| `KEEPALIVE_INTERVAL_SECONDS` | No | `60` | Interval between requests to the Render service's own `/health` endpoint. Attempts to reduce idle sleep only; this does not provide persistent storage or guarantee uptime. |
 
 Use the *same* persistent disk for both `DATABASE_PATH` and `STORAGE_DIR`. Telegram bot polling requires that only one service instance uses this token at a time; do not run overlapping deployments or multiple replicas with the same bot.
+
+The service sends a best-effort health request to its own Render URL every 60 seconds to reduce idle sleep. This is not a substitute for a persistent disk: local database and uploads can still be lost after a restart or redeploy. Render can also suspend or restart instances independently of this check.
 
 ## Workflow
 

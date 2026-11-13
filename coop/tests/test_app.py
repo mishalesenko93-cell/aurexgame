@@ -200,6 +200,20 @@ class CoopAppTests(unittest.TestCase):
             server.server_close()
             thread.join(timeout=3)
 
+    def test_keepalive_health_request_returns_success(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+        thread = threading.Thread(target=server.serve_forever)
+        thread.start()
+        try:
+            status = app.ping_service_once(
+                f"http://127.0.0.1:{server.server_port}/health"
+            )
+            self.assertEqual(status, 200)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=3)
+
     def test_admin_can_credit_balance_without_report_or_employee_confirmation(self):
         app.credit_balance(123, 7250, "One-time bonus")
         app.credit_balance(123, 300, "")
