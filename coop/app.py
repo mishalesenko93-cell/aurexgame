@@ -28,7 +28,7 @@ DATABASE_PATH = Path(os.environ.get("DATABASE_PATH", ROOT / ".data" / "coop.sqli
 STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", ROOT / ".data"))
 UPLOAD_DIR = STORAGE_DIR / "uploads"
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-WEBAPP_URL = os.environ.get("WEBAPP_URL", "")
+WEBAPP_URL = os.environ.get("WEBAPP_URL") or os.environ.get("RENDER_EXTERNAL_URL", "")
 PORT = int(os.environ.get("PORT", "8080"))
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_JSON_BYTES = 1024 * 1024
@@ -875,7 +875,7 @@ def main():
     if not BOT_TOKEN:
         raise SystemExit("Set BOT_TOKEN in the service environment")
     if not WEBAPP_URL.startswith("https://"):
-        raise SystemExit("Set WEBAPP_URL to the service's public HTTPS address")
+        raise SystemExit("Set WEBAPP_URL or deploy to a host with RENDER_EXTERNAL_URL")
     initialize_database()
     try:
         telegram_api(

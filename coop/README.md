@@ -13,17 +13,17 @@ $env:WEBAPP_URL = "https://your-public-https-domain/"
 python app.py
 ```
 
-Set `WEBAPP_URL` to this service's public HTTPS URL and register it as the bot's Mini App domain with BotFather. Open the bot and send `/start`. The admin ID is the numeric Telegram user ID, not a username. Admin users can search users by username after they have started this bot; enrollment is always bound to the Telegram numeric ID.
+Set `WEBAPP_URL` to this service's public HTTPS URL (Render sets this automatically through `RENDER_EXTERNAL_URL`). Open the bot and send `/start`. The admin ID is the numeric Telegram user ID, not a username. Admin users can search users by username after they have started this bot; enrollment is always bound to the Telegram numeric ID.
 
 ## Deployment
 
-Create a **separate Render Web Service** from this repository with `coop` as its Docker build context / Dockerfile directory. Do not change the existing root service or root `Dockerfile`. Attach a persistent disk mounted at `/var/data`, then set the variables below. Set `WEBAPP_URL` to the final service URL (ending in `/`). Redeploy/restart the service after secrets are configured.
+Create a **separate Render Web Service** from this repository with `coop` as its Docker build context / Dockerfile directory. Do not change the existing root service or root `Dockerfile`. Attach a persistent disk mounted at `/var/data`, then set the variables below. Render provides the public service URL automatically; no need to guess it before the first deployment.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `BOT_TOKEN` | Yes | — | Secret token from BotFather. Add through the hosting provider's secret environment settings, never to the repository or chat. |
 | `ADMIN_TELEGRAM_IDS` | Yes for admin functions | — | Comma-separated numeric Telegram user IDs, e.g. `123456789,987654321`. |
-| `WEBAPP_URL` | Yes for Telegram launch | — | Public HTTPS URL of this service, e.g. `https://aurex-coop.onrender.com/`. |
+| `WEBAPP_URL` | No on Render | `RENDER_EXTERNAL_URL` on Render | Public HTTPS URL of the Mini App. Override only if using a custom domain or another host. |
 | `PORT` | No | `8080` | HTTP port provided by the host. |
 | `DATABASE_PATH` | No | `coop/.data/coop.sqlite3` | SQLite database path; use `/var/data/coop.sqlite3` with a persistent Render disk. |
 | `STORAGE_DIR` | No | `coop/.data` | Directory containing private uploads; use `/var/data` with a persistent disk. Uploads are not served from the public web root. |
