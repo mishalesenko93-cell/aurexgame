@@ -214,6 +214,25 @@ class CoopAppTests(unittest.TestCase):
             server.server_close()
             thread.join(timeout=3)
 
+    def test_database_backup_restores_requests_without_overwriting_existing_data(self):
+        app.submit_application(123, "job", "Designer", "Create a visual system")
+        backup = app.create_database_backup()
+        self.assertEqual(len(backup["tables"]["applications"]), 1)
+        with app.connect_db() as db:
+            db.execute("DELETE FROM applications")
+        first_restore = app.restore_database_backup(backup)
+        second_restore = app.restore_database_backup(backup)
+        with app.connect_db() as db:
+            applications = db.execute("SELECT * FROM applications").fetchall()
+        self.assertEqual(first_restore["applications"], 1)
+        self.assertEqual(second_restore["applications"], 0)
+        self.assertEqual(len(applications), 1)
+        self.assertEqual(applications[0]["message"], "Create a visual system")
+
+    def test_database_backup_rejects_unknown_format(self):
+        with self.assertRaises(ValueError):
+            app.restore_database_backup({"format": "unknown", "version": 1, "tables": {}})
+
     def test_admin_can_credit_balance_without_report_or_employee_confirmation(self):
         app.credit_balance(123, 7250, "One-time bonus")
         app.credit_balance(123, 300, "")

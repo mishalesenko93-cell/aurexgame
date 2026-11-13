@@ -33,6 +33,7 @@ PORT = int(os.environ.get("PORT", "8080"))
 KEEPALIVE_INTERVAL_SECONDS = int(os.environ.get("KEEPALIVE_INTERVAL_SECONDS", "60"))
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_JSON_BYTES = 1024 * 1024
+MAX_BACKUP_BYTES = 20 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "webp", "txt", "csv", "zip"}
 TRC20_RE = re.compile(r"^T[1-9A-HJ-NP-Za-km-z]{33}$")
 LOGGER = logging.getLogger("aurex-coop")
@@ -677,6 +678,83 @@ def summary_for(telegram_id):
     }
 
 
+BACKUP_TABLES = {
+    "users": (
+        "telegram_id, username, first_name, last_name, wallet, created_at, updated_at",
+        "telegram_id",
+    ),
+    "applications": (
+        "id, telegram_id, kind, position, message, status, decision_note, created_at, decided_at",
+        "id",
+    ),
+    "employees": (
+        "telegram_id, monthly_salary_cents, currency, active, created_at",
+        "telegram_id",
+    ),
+    "reports": (
+        "id, telegram_id, message, status, decision_note, created_at, decided_at",
+        "id",
+    ),
+    "salary_credits": (
+        "id, telegram_id, period, report_id, amount_cents, created_at",
+        "id",
+    ),
+    "ledger": (
+        "id, telegram_id, kind, amount_cents, description, report_id, created_at",
+        "id",
+    ),
+    "payout_requests": (
+        "id, telegram_id, amount_cents, wallet, status, admin_note, created_at, decided_at",
+        "id",
+    ),
+}
+
+
+def create_database_backup():
+    with connect_db() as db:
+        return {
+            "format": "aurex-coop-backup",
+            "version": 1,
+            "created_at": utc_now(),
+            "tables": {
+                table: [
+                    dict(row)
+                    for row in db.execute(
+                        f"SELECT {columns} FROM {table} ORDER BY {order_by}"
+                    )
+                ]
+                for table, (columns, order_by) in BACKUP_TABLES.items()
+            },
+        }
+
+
+def restore_database_backup(backup):
+    if not isinstance(backup, dict) or backup.get("format") != "aurex-coop-backup":
+        raise ValueError("Это не резервная копия AUREX Company")
+    if backup.get("version") != 1 or not isinstance(backup.get("tables"), dict):
+        raise ValueError("Версия резервной копии не поддерживается")
+    tables = backup["tables"]
+    counts = {}
+    with connect_db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        for table, (columns_csv, _) in BACKUP_TABLES.items():
+            rows = tables.get(table, [])
+            if not isinstance(rows, list) or len(rows) > 100_000:
+                raise ValueError(f"Некорректная таблица {table} в резервной копии")
+            columns = columns_csv.split(", ")
+            before = db.total_changes
+            for row in rows:
+                if not isinstance(row, dict) or set(row) != set(columns):
+                    raise ValueError(f"Некорректная запись в таблице {table}")
+                placeholders = ", ".join("?" for _ in columns)
+                db.execute(
+                    f"INSERT OR IGNORE INTO {table} ({columns_csv}) VALUES ({placeholders})",
+                    [row[column] for column in columns],
+                )
+            counts[table] = db.total_changes - before
+    return counts
+
+
 def telegram_api(method, **params):
     request = urllib.request.Request(
         f"https://api.telegram.org/bot{BOT_TOKEN}/{method}",
@@ -804,12 +882,12 @@ class Handler(BaseHTTPRequestHandler):
                     break
                 self.wfile.write(block)
 
-    def get_json(self):
+    def get_json(self, max_bytes=MAX_JSON_BYTES):
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             raise APIError(400, "Invalid content length")
-        if length < 0 or length > MAX_JSON_BYTES:
+        if length < 0 or length > max_bytes:
             raise APIError(413, "Request is too large")
         try:
             value = json.loads(self.rfile.read(length) or b"{}")
@@ -952,6 +1030,12 @@ class Handler(BaseHTTPRequestHandler):
                         for row in rows
                     ],
                 )
+            if path == "/api/admin/backup":
+                self.require_admin(user)
+                backup = create_database_backup()
+                if len(json.dumps(backup, separators=(",", ":")).encode("utf-8")) > MAX_BACKUP_BYTES:
+                    raise APIError(413, "Резервная копия слишком большая для Mini App")
+                return self.send_json(200, backup)
             file_match = re.fullmatch(r"/api/files/([a-f0-9]{32})", path)
             if file_match:
                 with connect_db() as db:
@@ -985,6 +1069,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
         try:
+            if path == "/api/admin/backup/restore":
+                user = self.authenticated_user()
+                self.require_admin(user)
+                data = self.get_json(MAX_BACKUP_BYTES)
+                counts = restore_database_backup(data.get("backup"))
+                return self.send_json(200, {"ok": True, "restored": counts})
             if path == "/api/report-files":
                 user = self.authenticated_user()
                 self.upload_report_file(user)

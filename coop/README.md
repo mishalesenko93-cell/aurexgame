@@ -44,6 +44,8 @@ The service sends a best-effort health request to its own Render URL every 60 se
 - No on-chain transaction is sent. Admins make any USDT transfer outside the app and record the manual payout (amount plus optional TXID/note), which deducts from the internal balance without an employee approval step.
 - Employees can request a withdrawal only between the 5th at 00:00 and the end of the 6th in `PAYOUT_UTC_OFFSET_HOURS` time. Requests reserve balance while pending and include the selected TRC20 wallet. Admins record the external transfer or reject the request; employee confirmation is not required.
 - The Mini App uses separate navigation for home, reports, balance/payouts, wallet, applications, and admin workflows.
+- While the admin Mini App is open, it stores a full database backup in that device's IndexedDB every five minutes. It detects when the server has fewer records than the local backup and offers a merge restore. Admins can also download a JSON copy to their device and restore it later. This is a free extra recovery copy, not guaranteed server storage: the admin app must be opened periodically, and Telegram/browser storage can be cleared or the device lost. It does not include uploaded file contents.
+- For always-on shared storage, the Render service still needs a persistent disk or managed database. A local Mini App copy is only available to that admin's device and is not shared with other admins.
 - Upload limit is 10 MiB. Only PDF, PNG, JPG/JPEG, WEBP, TXT, CSV, and ZIP files with matching content are accepted. Files are stored under the configured private storage directory with generated names.
 
 ## Checks

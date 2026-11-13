@@ -171,6 +171,17 @@
     <section id="page-admin-payments" class="page hidden">
       <div class="section-heading"><div><div class="eyebrow">Администрирование</div><h2>Начисления и выплаты</h2></div></div>
       <div class="notice">Начисление сразу меняет внутренний баланс сотрудника, без его подтверждения. Перевод USDT выполняется отдельно; после него запишите выплату, чтобы списать её с баланса.</div>
+      <section class="card">
+        <div class="eyebrow">Резервная копия на этом устройстве</div>
+        <h2 style="margin-top:7px">Защита заявок</h2>
+        <p id="backup-status" class="muted">Проверяем локальную копию…</p>
+        <p class="muted">Пока админский Mini App открыт, копия обновляется каждые 5 минут в хранилище браузера. Скачивай JSON на устройство для дополнительной защиты. Локальная копия принадлежит этому устройству и может быть очищена настройками Telegram/браузера.</p>
+        <button id="download-backup" class="secondary">Скачать копию JSON</button>
+        <button id="restore-local-backup" class="secondary hidden">Восстановить копию с этого устройства</button>
+        <label for="backup-file">Или восстановить скачанный JSON-файл</label>
+        <input id="backup-file" type="file" accept="application/json,.json">
+        <button id="restore-file-backup" class="secondary">Восстановить из файла</button>
+      </section>
       <section class="card"><h2>Запросы на вывод</h2><div id="payout-request-list"></div></section>
       <section class="card"><h2>Начисление баланса</h2><div id="admin-payments"></div></section>
     </section>
@@ -209,6 +220,75 @@
   const run = async (action) => { try { await action(); } catch (error) { toast(error.message, true); } };
   const person = (item) => escapeHtml(item.name || [item.first_name, item.last_name].filter(Boolean).join(" ") || item.username || item.telegram_id);
   let currentUser, actionUserId, actionType;
+  let backupTimer, backupRunning = false, backupDatabase;
+  const openBackupDatabase = () => {
+    if (!window.indexedDB) return Promise.reject(new Error("В этом браузере нет локального хранилища резервных копий"));
+    if (backupDatabase) return Promise.resolve(backupDatabase);
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("aurex-company-local-backups", 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains("backups")) request.result.createObjectStore("backups");
+      };
+      request.onsuccess = () => { backupDatabase = request.result; resolve(backupDatabase); };
+      request.onerror = () => reject(request.error || new Error("Не удалось открыть локальное хранилище"));
+    });
+  };
+  const localBackupKey = () => `user-${currentUser.user.telegram_id}`;
+  const readLocalBackup = async () => {
+    const database = await openBackupDatabase();
+    return new Promise((resolve, reject) => {
+      const request = database.transaction("backups","readonly").objectStore("backups").get(localBackupKey());
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error || new Error("Не удалось прочитать локальную копию"));
+    });
+  };
+  const writeLocalBackup = async (backup) => {
+    const database = await openBackupDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction("backups","readwrite");
+      transaction.objectStore("backups").put(backup,localBackupKey());
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error || new Error("Не удалось сохранить локальную копию"));
+      transaction.onabort = () => reject(transaction.error || new Error("Локальная копия не сохранена"));
+    });
+  };
+  const backupRecordCount = (backup) => Object.values(backup.tables || {}).reduce((sum, rows) => sum + rows.length, 0);
+  const updateBackupStatus = async (message) => {
+    $("backup-status").textContent = message;
+    try {
+      const backup = await readLocalBackup();
+      $("restore-local-backup").classList.toggle("hidden", !backup);
+      if (backup) $("backup-status").textContent += ` Локальная копия: ${backup.created_at}; записей: ${backupRecordCount(backup)}.`;
+    } catch (error) {
+      $("backup-status").textContent += ` ${error.message}`;
+    }
+  };
+  const syncLocalBackup = async () => {
+    if (backupRunning || !currentUser || !currentUser.is_admin) return;
+    backupRunning = true;
+    try {
+      const [latest, local] = await Promise.all([api("/api/admin/backup"),readLocalBackup()]);
+      if (local && backupRecordCount(local) > backupRecordCount(latest)) {
+        await updateBackupStatus("На сервере меньше записей, чем в копии. Проверьте копию и нажмите «Восстановить».");
+        return;
+      }
+      await writeLocalBackup(latest);
+      await updateBackupStatus("Резервная копия обновлена.");
+    } catch (error) {
+      await updateBackupStatus(`Не удалось обновить копию с сервера: ${error.message}`);
+    } finally {
+      backupRunning = false;
+    }
+  };
+  const restoreBackup = async (backup) => {
+    if (!backup || backup.format !== "aurex-coop-backup") throw new Error("Неверный формат резервной копии");
+    const result = await api("/api/admin/backup/restore",{backup});
+    toast(`Копия объединена с сервером. Восстановлено записей: ${Object.values(result.restored).reduce((sum,count) => sum + count,0)}.`);
+    await syncLocalBackup();
+    await loadAdmin();
+    renderMe(await api("/api/me"));
+    go("admin-payments");
+  };
   const nav = [
     ["home","Главная"],["reports","Отчёты"],["payments","Выплаты"],["wallet","Кошелёк"],
     ["application","Заявка"],["admin-applications","Заявки"],["admin-reports","Отчёты команды"],
@@ -295,6 +375,8 @@
       `<div class="entry"><div class="row"><strong>#${request.id} · ${escapeHtml(request.name)} · ${money(request.amount_cents)}</strong>${request.status === "pending" ? `<span class="badge pending">Ожидает выплаты</span>` : badge(request.status)}</div><p><small>ID ${request.telegram_id} · TRC20 ${escapeHtml(request.wallet)}</small></p><small>${escapeHtml(request.created_at)}</small>${request.status === "pending" ? `<div><button data-payout-request="${request.id}" data-decision="paid">Отметить оплаченной</button><button class="danger" data-payout-request="${request.id}" data-decision="rejected">Отклонить</button></div>` : request.admin_note ? `<p>${escapeHtml(request.admin_note)}</p>` : ""}</div>`).join("") : `<div class="empty">Запросов на вывод пока нет.</div>`;
     $("user-results").innerHTML = users.filter((u) => !u.employee).map((u) =>
       `<div class="entry row"><span><strong>${person(u.user)}</strong><br><small>${u.user.username ? "@"+escapeHtml(u.user.username)+" · " : ""}ID ${u.user.telegram_id}</small></span><button data-enroll-user="${u.user.telegram_id}">Добавить в команду</button></div>`).join("");
+    await syncLocalBackup();
+    if (!backupTimer) backupTimer = setInterval(syncLocalBackup,300000);
   };
   const openAction = (type, telegramId) => {
     actionType = type;
@@ -359,6 +441,29 @@
       toast(actionType === "credit" ? "Средства сразу начислены на баланс." : actionType === "payout" ? "Выплата записана, сумма списана с баланса." : "Зарплата обновлена.");
       await loadAdmin(); renderMe(await api("/api/me")); go(actionType === "salary" ? "admin-team" : "admin-payments");
     });
+    $("download-backup").addEventListener("click", () => run(async () => {
+      const backup = await api("/api/admin/backup");
+      await writeLocalBackup(backup);
+      const blob = new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+      const url = URL.createObjectURL(blob), link = document.createElement("a");
+      link.href = url; link.download = `aurex-company-backup-${new Date().toISOString().slice(0,10)}.json`;
+      link.click(); URL.revokeObjectURL(url);
+      await updateBackupStatus("Копия скачана на устройство.");
+    }));
+    $("restore-local-backup").addEventListener("click", () => run(async () => {
+      const backup = await readLocalBackup();
+      if (!backup) throw new Error("На этом устройстве нет резервной копии");
+      if (!confirm(`Объединить копию от ${backup.created_at} с данными сервера? Существующие записи не будут удалены.`)) return;
+      await restoreBackup(backup);
+    }));
+    $("restore-file-backup").addEventListener("click", () => run(async () => {
+      const file = $("backup-file").files[0];
+      if (!file) throw new Error("Сначала выберите JSON-файл резервной копии");
+      if (file.size > 20 * 1024 * 1024) throw new Error("Размер резервной копии не должен превышать 20 МБ");
+      const backup = JSON.parse(await file.text());
+      await restoreBackup(backup);
+      $("backup-file").value = "";
+    }));
   });
   document.addEventListener("click", (event) => {
     const link = event.target.closest('a[href^="/api/files/"]');
