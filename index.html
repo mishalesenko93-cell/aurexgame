@@ -10,6 +10,10 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 body{background:radial-gradient(1200px 600px at 50% -10%,#1d2250 0%,var(--bg) 60%)}
+#snow{display:none;position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:20}
+body.winter #snow{display:block}
+.snowflake{position:absolute;top:-24px;color:#eaf7ff;text-shadow:0 0 8px #c9efff;animation:snowfall linear infinite}
+@keyframes snowfall{to{transform:translate3d(35px,110vh,0) rotate(360deg)}}
 #app{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
 .brand{font-weight:800;letter-spacing:1px;font-size:15px}
@@ -42,6 +46,9 @@ body.skin-neon .balance .n{color:#6fe9ff;text-shadow:0 0 24px #4fe3ff55}
 .stat{flex:1;background:var(--card);border-radius:14px;padding:10px;text-align:center;font-size:12px;color:var(--muted)}
 .stat b{display:block;color:var(--text);font-size:16px;margin-top:2px}
 .combo{text-align:center;height:22px;font-weight:800;color:var(--accent2)}
+.boost-wrap{text-align:center;margin:0 0 8px}
+.boost-wrap .btn{min-width:190px}
+.season-note{color:#bdeaff;font-size:12px;text-align:center;margin:0 0 8px}
 nav{display:flex;background:var(--card);border-top:1px solid #ffffff10}
 nav button{flex:1;padding:12px 0 10px;border:none;background:none;color:var(--muted);font-size:11px;cursor:pointer}
 nav button i{display:block;font-style:normal;font-size:20px;margin-bottom:2px}
@@ -57,6 +64,11 @@ h2{margin:6px 0 10px;font-size:18px}
 .btn.star{background:linear-gradient(135deg,#ffd33d,#ff9f1a)}
 .btn.alt{background:var(--accent2);color:#fff}
 .banner{background:linear-gradient(135deg,#2a1f6b,#0f3a6b);border-radius:18px;padding:16px;margin-bottom:12px}
+.prestige{background:linear-gradient(135deg,#3b205f,#1c2340 70%,#12465b)}
+.prestige .btn{margin-top:10px}
+.lb-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lb-head h2{margin:16px 0 10px}
+.lb-status{color:var(--muted);font-size:12px;text-align:center;padding:8px}
 .banner p{margin:4px 0 12px;color:#cdd3ff;font-size:13px}
 .owned{color:var(--ok);font-weight:800;font-size:13px}
 .lb{display:flex;justify-content:space-between;padding:10px 12px;background:var(--card);border-radius:12px;margin-bottom:6px;font-size:14px}
@@ -68,6 +80,7 @@ h2{margin:6px 0 10px;font-size:18px}
 </style>
 </head>
 <body>
+<div id="snow" aria-hidden="true"></div>
 <div id="app">
  <header>
   <div class="brand">AUREX<b>COMPANY</b> · MINER</div>
@@ -77,6 +90,7 @@ h2{margin:6px 0 10px;font-size:18px}
   <section class="tab on" id="t-game">
    <div class="balance"><div class="n" id="bal">0</div><div class="s">AUREX-монет</div></div>
    <div class="combo" id="combo"></div>
+   <div class="boost-wrap"><button class="btn alt" id="boostBtn">⚡ Турбо-тап · готов</button></div>
    <div class="stage" id="stage">
     <button id="coin"><span><em>Ⓐ</em><small>AUREX</small></span></button>
    </div>
@@ -85,6 +99,7 @@ h2{margin:6px 0 10px;font-size:18px}
     <div class="stat">В секунду<b id="sPs">0</b></div>
     <div class="stat">Множитель<b id="sMul">×1</b></div>
    </div>
+   <div class="season-note" id="seasonNote"></div>
   </section>
 
   <section class="tab" id="t-up">
@@ -100,6 +115,11 @@ h2{margin:6px 0 10px;font-size:18px}
   </section>
 
   <section class="tab" id="t-more">
+   <div class="banner prestige">
+    <b style="font-size:17px">♻️ Перерождение · <span id="rebirthCount">0</span></b>
+    <p id="rebirthInfo">Набери 100 млн монет за цикл, чтобы получить постоянный бонус дохода +10%.</p>
+    <button class="btn" id="rebirthBtn" disabled>Нужно ещё 100 млн</button>
+   </div>
    <div class="banner">
     <b style="font-size:17px">📢 Канал AurexCompany</b>
     <p>Новости, розыгрыши и IT-контент каждый день в 10:00. Подпишись и забери бонус!</p>
@@ -108,7 +128,8 @@ h2{margin:6px 0 10px;font-size:18px}
    </div>
    <div class="item"><div class="ic">📅</div><div class="t"><b>Ежедневный бонус</b><small id="dailyInfo">Серия: 0 дн.</small></div><button class="btn" id="dailyBtn">Забрать</button></div>
    <div class="item"><div class="ic">👥</div><div class="t"><b>Позвать друга</b><small>Отправь ссылку на игру, пусть тоже майнит</small></div><button class="btn alt" id="shareBtn">Отправить</button></div>
-   <h2 style="margin-top:16px">🏆 Рейтинг</h2>
+   <div class="lb-head"><h2>🏆 Рейтинг игроков</h2><button class="btn alt" id="lbRefresh">Обновить</button></div>
+   <div class="lb-status" id="lbStatus">Загрузка рейтинга…</div>
    <div id="lb"></div>
    <div class="foot">AUREX COMPANY · <a href="#" data-ch>t.me/AurexCompany</a></div>
   </section>
@@ -117,7 +138,7 @@ h2{margin:6px 0 10px;font-size:18px}
   <button class="on" data-tab="t-game"><i>🪙</i>Майнинг</button>
   <button data-tab="t-up"><i>⚙️</i>Апгрейды</button>
   <button data-tab="t-shop"><i>⭐</i>Магазин</button>
-  <button data-tab="t-more"><i>🎁</i>Бонусы</button>
+  <button data-tab="t-more"><i>🎁</i>Ивенты</button>
  </nav>
 </div>
 <div class="toast" id="toast"></div>
@@ -133,6 +154,19 @@ const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); try{tg.setHeaderColor("#0b0d17");tg.setBackgroundColor("#0b0d17");}catch(e){} }
 const initData = tg?.initData || "";
 const me = tg?.initDataUnsafe?.user || {id:0, first_name:"Игрок"};
+const $ = id => document.getElementById(id);
+const winterNow = (()=>{const d=new Date();return (d.getMonth()===11&&d.getDate()>=1)||d.getMonth()===0||d.getMonth()===1})();
+if(winterNow){
+  document.body.classList.add("winter");
+  const snow=$("snow");
+  for(let i=0;i<36;i++){
+    const flake=document.createElement("span"); flake.className="snowflake"; flake.textContent="❄";
+    flake.style.left=Math.random()*100+"%"; flake.style.fontSize=(8+Math.random()*12)+"px";
+    flake.style.opacity=(.25+Math.random()*.65).toFixed(2);
+    flake.style.animationDuration=(7+Math.random()*12)+"s"; flake.style.animationDelay=(-Math.random()*18)+"s";
+    snow.appendChild(flake);
+  }
+}
 
 const UPG = [
  {id:"tap",  ic:"👆", name:"Мощный тап",      desc:"+1 монета за тап",     base:25,   k:1.55, type:"tap",  v:1},
@@ -153,8 +187,7 @@ const SHOP = [
 const LEVELS = [0,500,3000,15000,80000,400000,2e6,1e7,5e7,3e8];
 const LVL_NAMES = ["Новичок","Стажёр","Джуниор","Мидл","Сеньор","Тимлид","CTO","Основатель","Легенда","AUREX-бог"];
 
-let S = {coins:0,total:0,taps:0,lv:{},perm:{},claimedCons:{},channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
-const $ = id => document.getElementById(id);
+let S = {coins:0,total:0,allTime:0,rebirths:0,taps:0,lv:{},perm:{},claimedCons:{},channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
 const fmt = n => { n=Math.floor(n); if(n<1e3)return String(n); const u=["","K","M","B","T"]; let i=0,x=n; while(x>=1000&&i<4){x/=1000;i++} return (x<10?x.toFixed(2):x<100?x.toFixed(1):Math.floor(x))+u[i]; };
 const toast = (m)=>{const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)};
 const haptic = (t="light")=>{try{tg?.HapticFeedback?.impactOccurred(t)}catch(e){}};
@@ -170,6 +203,9 @@ function load(cb){
   const finish=(cloud)=>{
     const pick=[local,cloud].filter(Boolean).sort((a,b)=>(b.total||0)-(a.total||0))[0];
     if(pick) S=Object.assign(S,pick);
+    S.allTime=Math.max(Number(S.allTime)||0,Number(S.total)||0);
+    S.rebirths=Math.max(0,Math.floor(Number(S.rebirths)||0));
+    S.lv=S.lv||{}; S.perm=S.perm||{}; S.claimedCons=S.claimedCons||{};
     cb();
   };
   if(tg?.CloudStorage){ try{ tg.CloudStorage.getItem("state",(e,v)=>{let c=null;try{c=JSON.parse(v)}catch(_){} finish(c)}); return;}catch(e){} }
@@ -178,8 +214,8 @@ function load(cb){
 
 /* ---- расчёты ---- */
 const lvOf = id => S.lv[id]||0;
-const mult = () => S.perm.turbo ? 2 : 1;
-const tapVal = () => (1 + lvOf("tap")) * mult();
+const mult = () => (S.perm.turbo ? 2 : 1) * (1 + 0.1*(S.rebirths||0));
+const tapVal = () => (1 + lvOf("tap")) * mult() * tapBoost();
 const critChance = () => Math.min(30, lvOf("crit")*3);
 function psVal(){
   let p=0; UPG.filter(u=>u.type==="ps").forEach(u=>p+=lvOf(u.id)*u.v);
@@ -188,17 +224,31 @@ function psVal(){
 }
 const cost = u => Math.floor(u.base*Math.pow(u.k,lvOf(u.id)));
 const levelIdx = () => { let i=0; while(i<LEVELS.length-1 && S.total>=LEVELS[i+1]) i++; return i; };
+const REBIRTH_COST = 100_000_000;
+const earn = amount => {
+  const value=Math.max(0,Number(amount)||0);
+  S.coins+=value; S.total+=value; S.allTime+=value;
+  return value;
+};
+let boostUntil=0, boostReadyAt=0;
+const tapBoost = () => Date.now()<boostUntil ? 5 : 1;
+let leaderboardPlayers=[], leaderboardRank=0, leaderboardCount=0;
 
 /* ---- UI ---- */
 function renderTop(){
   $("bal").textContent=fmt(S.coins);
   $("sTap").textContent=fmt(tapVal());
   $("sPs").textContent=fmt(psVal());
-  $("sMul").textContent="×"+mult();
+  $("sMul").textContent="×"+Number(mult().toFixed(2));
   const i=levelIdx(), next=LEVELS[i+1]??null, cur=LEVELS[i];
-  $("lvlName").textContent=`${LVL_NAMES[i]} · ур.${i+1}`;
+  $("lvlName").textContent=`${LVL_NAMES[i]} · ур.${i+1} · ♻️${S.rebirths}`;
   $("lvlBar").style.width = next? Math.min(100,(S.total-cur)/(next-cur)*100)+"%" : "100%";
   document.body.classList.toggle("skin-neon", !!S.perm.skin);
+  $("seasonNote").textContent=winterNow?"❄ Зимний сезон · снег до конца февраля":"Зимний сезон со снегом начнётся 1 декабря";
+  const boostBtn=$("boostBtn"), now=Date.now();
+  if(now<boostUntil){boostBtn.textContent=`⚡ Турбо-тап · ${Math.ceil((boostUntil-now)/1000)}с`;boostBtn.disabled=false}
+  else if(now<boostReadyAt){boostBtn.textContent=`⚡ Перезарядка · ${Math.ceil((boostReadyAt-now)/1000)}с`;boostBtn.disabled=true}
+  else{boostBtn.textContent="⚡ Турбо-тап · готов";boostBtn.disabled=false}
 }
 function renderUp(){
   $("upList").innerHTML = UPG.map(u=>{
@@ -220,12 +270,23 @@ function renderMore(){
   $("dailyInfo").textContent = `Серия: ${S.streak} дн. · награда растёт каждый день`;
   const today=new Date().toDateString();
   $("dailyBtn").disabled = (new Date(S.lastDaily).toDateString()===today);
-  const board=[
-    {n:"Mikhail D.",s:2400000},{n:"AUREX Team",s:880000},{n:"Cyber_Fox",s:150000},{n:"NightOwl",s:42000}
-  ];
-  const mine={n:(me.first_name||"Ты")+" (ты)",s:S.total,me:true};
-  const all=[...board,mine].sort((a,b)=>b.s-a.s);
-  $("lb").innerHTML = all.map((r,i)=>`<div class="lb ${r.me?"me":""}"><span>${i+1}. ${r.n}</span><b>${fmt(r.s)}</b></div>`).join("");
+  $("rebirthCount").textContent=String(S.rebirths);
+  $("rebirthInfo").textContent=`Цикл: ${fmt(S.total)} / ${fmt(REBIRTH_COST)} · бонус дохода +${S.rebirths*10}%`;
+  $("rebirthBtn").disabled=S.total<REBIRTH_COST;
+  $("rebirthBtn").textContent=S.total>=REBIRTH_COST?"♻️ Переродиться":"Нужно ещё "+fmt(Math.max(0,REBIRTH_COST-S.total));
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const list=$("lb"); list.textContent="";
+  leaderboardPlayers.forEach((player,index)=>{
+    const row=document.createElement("div"); row.className="lb"+(player.isMe?" me":"");
+    const label=document.createElement("span"); label.textContent=`${index+1}. ${player.name}${player.isMe?" (ты)":""}`;
+    const score=document.createElement("b"); score.textContent=fmt(player.score);
+    row.append(label,score); list.appendChild(row);
+  });
+  if(leaderboardCount){
+    $("lbStatus").textContent=`Игроков: ${leaderboardCount}${leaderboardRank?` · твоё место: #${leaderboardRank}`:""}`;
+  }
 }
 function renderAll(){renderTop();renderUp();renderShop();renderMore()}
 
@@ -235,9 +296,9 @@ $("coin").addEventListener("pointerdown",e=>{
   e.preventDefault();
   let v=tapVal(), crit=Math.random()*100<critChance();
   if(crit) v*=5;
-  S.coins+=v; S.total+=v; S.taps++;
+  earn(v); S.taps++;
   combo++; clearTimeout(comboT); comboT=setTimeout(()=>{combo=0;$("combo").textContent=""},900);
-  if(combo>=10){ $("combo").textContent=`🔥 Комбо ×${combo}`; if(combo%25===0){const b=tapVal()*combo; S.coins+=b;S.total+=b;toast(`Бонус за комбо +${fmt(b)}`)} }
+  if(combo>=10){ $("combo").textContent=`🔥 Комбо ×${combo}`; if(combo%25===0){const b=tapVal()*combo; earn(b);toast(`Бонус за комбо +${fmt(b)}`)} }
   const r=$("stage").getBoundingClientRect();
   const f=document.createElement("div"); f.className="float";
   f.textContent="+"+fmt(v)+(crit?" 💥":""); f.style.color=crit?"#ff7a7a":"#fff";
@@ -245,13 +306,26 @@ $("coin").addEventListener("pointerdown",e=>{
   $("stage").appendChild(f); setTimeout(()=>f.remove(),900);
   haptic(crit?"heavy":"light"); renderTop();
 });
+$("boostBtn").onclick=()=>{
+  const now=Date.now();
+  if(now<boostReadyAt) return;
+  boostUntil=now+10000; boostReadyAt=now+60000;
+  toast("Турбо-тап активирован на 10 секунд!"); haptic("medium"); renderTop();
+};
+$("rebirthBtn").onclick=()=>{
+  if(S.total<REBIRTH_COST) return;
+  S.coins=0; S.total=0; S.taps=0; S.lv={}; S.rebirths++;
+  S.lastSeen=Date.now();
+  save(); renderAll(); syncLeaderboard();
+  toast(`Перерождение ${S.rebirths}! Доход увеличен на 10% ♻️`);
+};
 
 /* ---- случайный «баг» для ловли ---- */
 function spawnBug(){
   const st=$("stage"); if(!$("t-game").classList.contains("on")) return;
   const b=document.createElement("div"); b.className="bug"; b.textContent="🐞";
   b.style.left=(10+Math.random()*75)+"%"; b.style.top=(5+Math.random()*80)+"%";
-  b.onclick=()=>{ const v=Math.max(500,psVal()*30+tapVal()*100); S.coins+=v;S.total+=v; toast(`Баг пойман! +${fmt(v)} 🪙 (AUREX QA)`); haptic("medium"); b.remove(); renderTop(); };
+  b.onclick=()=>{ const v=Math.max(500,psVal()*30+tapVal()*100); earn(v); toast(`Баг пойман! +${fmt(v)} 🪙 (AUREX QA)`); haptic("medium"); b.remove(); renderTop(); };
   st.appendChild(b); setTimeout(()=>b.remove(),3500);
 }
 setInterval(()=>{ if(Math.random()<.35) spawnBug(); },8000);
@@ -274,12 +348,12 @@ $("upList").addEventListener("click",e=>{
 const openCh=()=>{ tg?.openTelegramLink ? tg.openTelegramLink(CHANNEL) : window.open(CHANNEL,"_blank"); };
 document.querySelectorAll("[data-ch]").forEach(a=>a.onclick=e=>{e.preventDefault();openCh()});
 $("chBtn").onclick=openCh;
-$("chClaim").onclick=()=>{ if(S.channel) return; openCh(); S.channel=true; S.coins+=5000;S.total+=5000; toast("Спасибо за подписку на AurexCompany! +5 000 🪙"); save(); renderAll(); };
+$("chClaim").onclick=()=>{ if(S.channel) return; openCh(); S.channel=true; earn(5000); toast("Спасибо за подписку на AurexCompany! +5 000 🪙"); save(); renderAll(); };
 $("dailyBtn").onclick=()=>{
   const today=new Date().toDateString(), y=new Date(Date.now()-864e5).toDateString();
   S.streak = (new Date(S.lastDaily).toDateString()===y) ? S.streak+1 : 1;
   S.lastDaily=Date.now();
-  const r=1000*S.streak*mult(); S.coins+=r;S.total+=r; toast(`Бонус за ${S.streak}-й день: +${fmt(r)} 🪙`); save(); renderAll();
+  const r=1000*S.streak*mult(); earn(r); toast(`Бонус за ${S.streak}-й день: +${fmt(r)} 🪙`); save(); renderAll();
 };
 $("shareBtn").onclick=()=>{
   const text="Майни AUREX-монеты в Telegram! 🪙 Канал: AurexCompany";
@@ -290,8 +364,19 @@ $("shareBtn").onclick=()=>{
 /* ---- магазин за Stars ---- */
 async function api(path,body){
   const r=await fetch(API_URL+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({initData,...body})});
-  return r.json();
+  const result=await r.json();
+  if(!r.ok) throw new Error(result.error||`API error ${r.status}`);
+  return result;
 }
+async function syncLeaderboard(){
+  if(!initData){ $("lbStatus").textContent="Открой игру в Telegram, чтобы попасть в общий рейтинг"; return; }
+  try{
+    const res=await api("/api/score",{score:S.allTime});
+    leaderboardPlayers=res.players||[]; leaderboardRank=res.rank||0; leaderboardCount=res.count||0;
+    renderLeaderboard();
+  }catch(e){ $("lbStatus").textContent="Не удалось загрузить рейтинг · нажми «Обновить»"; }
+}
+$("lbRefresh").onclick=syncLeaderboard;
 $("shopList").addEventListener("click",async e=>{
   const id=e.target.dataset?.buy; if(!id) return;
   if(!tg || !initData){ toast("Открой игру внутри Telegram, чтобы купить"); return; }
@@ -318,7 +403,7 @@ async function syncPurchases(){
         const claimed=S.claimedCons[s.id]||0;
         if(n>claimed){
           const gain = ({pack:100000,don10:10000,don50:75000})[s.id]*(n-claimed);
-          S.coins+=gain;S.total+=gain;S.claimedCons[s.id]=n;
+          earn(gain);S.claimedCons[s.id]=n;
         }
       }
     });
@@ -330,20 +415,22 @@ async function syncPurchases(){
 let last=performance.now();
 setInterval(()=>{
   const now=performance.now(), dt=(now-last)/1000; last=now;
-  const g=psVal()*dt; if(g>0){S.coins+=g;S.total+=g;renderTop(); if($("t-up").classList.contains("on"))renderUp();}
+  const g=psVal()*dt; if(g>0){earn(g);renderTop(); if($("t-up").classList.contains("on"))renderUp();}
 },250);
 setInterval(save,5000);
+setInterval(()=>{if(initData)syncLeaderboard()},15000);
 
 /* ---- старт ---- */
 load(()=>{
   // офлайн-доход (до 3 часов, 50%)
   const away=Math.min((Date.now()-(S.lastSeen||Date.now()))/1000,3*3600);
   const off=psVal()*away*0.5;
-  if(off>10){ S.coins+=off;S.total+=off; setTimeout(()=>toast(`Пока тебя не было: +${fmt(off)} 🪙`),600); }
+  if(off>10){ earn(off); setTimeout(()=>toast(`Пока тебя не было: +${fmt(off)} 🪙`),600); }
   S.lastSeen=Date.now(); window.addEventListener("beforeunload",()=>{S.lastSeen=Date.now();save()});
   document.addEventListener("visibilitychange",()=>{S.lastSeen=Date.now();save()});
-  renderAll(); syncPurchases();
+  renderAll(); syncPurchases(); syncLeaderboard();
 });
 </script>
 </body>
 </html>
+
