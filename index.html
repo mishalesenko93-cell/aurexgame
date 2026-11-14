@@ -28,16 +28,31 @@ main{flex:1;overflow:hidden;position:relative}
 .balance .n{font-size:44px;font-weight:900;color:var(--accent);text-shadow:0 0 24px #ffb80055}
 .balance .s{font-size:13px;color:var(--muted)}
 .stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:260px}
-#coin{width:230px;height:230px;border-radius:50%;border:none;cursor:pointer;position:relative;
+#coin{width:230px;height:230px;border-radius:50%;border:none;cursor:pointer;position:relative;isolation:isolate;transform-style:preserve-3d;will-change:transform;touch-action:manipulation;
  background:radial-gradient(circle at 32% 28%,#fff3b0 0%,#ffc933 28%,#e69500 62%,#8a5200 100%);
- box-shadow:0 0 60px #ffb80066,inset 0 -12px 30px #0006,inset 0 8px 20px #fff6;transition:transform .06s}
-#coin:active{transform:scale(.94)}
-#coin span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#5a3300;font-weight:900}
+ box-shadow:0 0 60px #ffb80066,inset 0 -12px 30px #0006,inset 0 8px 20px #fff6}
+#coin::before,#coin::after{position:absolute;inset:0;border-radius:50%;content:"";pointer-events:none}
+#coin::before{inset:-9px;border:2px solid #fff9;opacity:0;transform:scale(.84);box-shadow:0 0 18px #ffcf5977}
+#coin::after{opacity:0;background:radial-gradient(circle at var(--tap-x,50%) var(--tap-y,50%),#fff9 0,transparent 58%)}
+#coin.tap-burst{animation:aurexCoinTap .34s cubic-bezier(.2,.8,.25,1)}
+#coin.tap-burst::before{animation:aurexCoinRing .42s ease-out}
+#coin.tap-burst::after{animation:aurexCoinFlash .3s ease-out}
+#coin.tap-burst span{animation:aurexCoinFace .34s cubic-bezier(.2,.8,.25,1)}
+#coin.critical-tap::before{border-color:#fff5a8;box-shadow:0 0 28px #fff36b}
+@keyframes aurexCoinTap{0%,100%{transform:perspective(700px) rotateX(0) rotateY(0) scale(1)}28%{transform:perspective(700px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) scale(.9) translateY(3px)}66%{transform:perspective(700px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) scale(1.055) translateY(-5px)}}
+@keyframes aurexCoinRing{0%{opacity:.9;transform:scale(.84)}100%{opacity:0;transform:scale(1.1)}}
+@keyframes aurexCoinFlash{0%{opacity:.8}100%{opacity:0}}
+@keyframes aurexCoinFace{30%{transform:translateZ(18px) scale(.92)}68%{transform:translateZ(12px) scale(1.08)}}
+#coin span{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#5a3300;font-weight:900;pointer-events:none}
 #coin span em{font-style:normal;font-size:74px;line-height:1}
 #coin span small{font-size:13px;letter-spacing:3px}
 body.skin-neon #coin{background:radial-gradient(circle at 32% 28%,#d8fbff 0%,#4fe3ff 30%,#7c5cff 70%,#2a1a7a 100%);box-shadow:0 0 70px #7c5cff99,inset 0 -12px 30px #0006,inset 0 8px 20px #fff6}
 body.skin-neon #coin span{color:#10103a}
+body.skin-neon #coin::before{border-color:#b8f5ff;box-shadow:0 0 22px #55dfff}
 body.skin-neon .balance .n{color:#6fe9ff;text-shadow:0 0 24px #4fe3ff55}
+.coin-spark{position:absolute;z-index:8;width:7px;height:7px;border-radius:50%;background:#fff7c2;box-shadow:0 0 12px #fff2a1;pointer-events:none;animation:coinSpark .48s cubic-bezier(.15,.7,.2,1) forwards}
+.coin-spark.critical{background:#fff;color:#fff;box-shadow:0 0 15px #fff,0 0 28px #ffe75b}
+@keyframes coinSpark{to{opacity:0;transform:translate(var(--spark-x),var(--spark-y)) scale(.12)}}
 .float{position:absolute;pointer-events:none;font-weight:900;font-size:24px;color:#fff;text-shadow:0 2px 8px #000a;animation:up .9s ease-out forwards}
 @keyframes up{to{transform:translateY(-110px);opacity:0}}
 .bug{position:absolute;font-size:42px;cursor:pointer;animation:bugpulse .6s infinite alternate;z-index:5}
@@ -132,8 +147,76 @@ h2{margin:6px 0 10px;font-size:18px}
 @keyframes caseShake{from{transform:rotate(-8deg) scale(.94)}to{transform:rotate(8deg) scale(1.06);box-shadow:0 0 36px #70dcffbb}}
 @keyframes caseDialogIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes caseShine{to{transform:translateX(120%)}}
-@media(prefers-reduced-motion:reduce){.case-track{transition-duration:.01ms}.case-dialog::before{animation:none}.case-dialog.spinning .case-art-open{animation:none}}
+@media(prefers-reduced-motion:reduce){.case-track{transition-duration:.01ms}.case-dialog::before{animation:none}.case-dialog.spinning .case-art-open{animation:none}#coin.tap-burst,#coin.tap-burst::before,#coin.tap-burst::after,#coin.tap-burst span{animation:none}.coin-spark{display:none}}
 @media(max-width:360px){.case-card{grid-template-columns:62px 1fr;gap:10px;padding:12px}.case-art{width:62px;height:74px;font-size:32px}.case-info h3{font-size:16px}}
+.winter-nav{display:none}
+body.winter{background:radial-gradient(1000px 600px at 50% -10%,#1d4670 0%,#0b0d17 62%)}
+body.winter nav button{font-size:10px}
+.winter-tab{gap:10px}
+.bp-hero{position:relative;overflow:hidden;padding:18px;border:1px solid #78dfff55;border-radius:22px;background:radial-gradient(circle at 90% 0%,#72dcff2c,transparent 42%),linear-gradient(145deg,#172e51,#101626 75%);box-shadow:0 16px 40px #0005}
+.bp-kicker{color:#a7eaff;font-size:10px;font-weight:900;letter-spacing:2px}
+.bp-hero h2{margin:5px 0;font-size:23px}
+.bp-hero p{margin:0;color:#c0d0e8;font-size:12px;line-height:1.5}
+.bp-level{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}
+.bp-level strong{font-size:20px;color:#fff}
+.bp-level span,.bp-xp-label{color:#b8d5ef;font-size:11px}
+.bp-progress{height:9px;margin-top:8px;overflow:hidden;border:1px solid #ffffff20;border-radius:99px;background:#07101f}
+.bp-progress i{display:block;width:0;height:100%;border-radius:99px;background:linear-gradient(90deg,#57cfff,#d5faff,#ffc95e);box-shadow:0 0 16px #74dfff88;transition:width .5s}
+.bp-hero-actions,.bp-action-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.bp-hero-actions .btn,.bp-action-grid .btn{flex:1}
+.btn.ice{background:linear-gradient(135deg,#d9f7ff,#70cfff);color:#08213b}
+.winter-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.winter-stat{padding:10px 6px;border:1px solid #78dfff22;border-radius:13px;background:#101a2d;text-align:center;color:#a8bfd9;font-size:10px}
+.winter-stat b{display:block;color:#f2f8ff;font-size:15px;margin-bottom:3px}
+.winter-panel{padding:13px;border:1px solid #8ccfff21;border-radius:18px;background:linear-gradient(145deg,#151e31,#101421)}
+.winter-panel h3{margin:0 0 10px;font-size:15px}
+.quest-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid #ffffff0d}
+.quest-row:first-of-type{border-top:0}
+.quest-copy{flex:1;min-width:0}
+.quest-copy b{display:block;font-size:12px}
+.quest-copy small{display:block;margin-top:3px;color:#95a9c5;font-size:10px}
+.quest-progress{height:4px;margin-top:6px;overflow:hidden;border-radius:5px;background:#27314a}
+.quest-progress i{display:block;height:100%;background:#79dfff}
+.quest-row .btn{padding:7px 9px;font-size:10px}
+.quest-row .done-mark{color:#6be0b3;font-size:11px;font-weight:800}
+.winter-case-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.winter-case-row span{color:#bdd4ea;font-size:12px}
+.arena-card{position:relative;min-height:180px;overflow:hidden;border:1px solid #91dfff44;border-radius:18px;background:radial-gradient(circle at 50% 20%,#447bc233,transparent 50%),linear-gradient(155deg,#102945,#111525)}
+.arena-status{display:flex;justify-content:space-between;padding:11px 12px;color:#b8dcf5;font-size:12px;font-weight:800}
+#arenaTargets{position:absolute;inset:38px 0 0}
+.arena-target{position:absolute;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid #c9f6ff;border-radius:50%;background:radial-gradient(circle at 35% 25%,#fff,#a8ebff 40%,#5592d8 75%);box-shadow:0 0 20px #81dfff88;font-size:24px;cursor:pointer;animation:targetPop .18s ease-out both}
+.arena-hit{animation:targetHit .25s ease-out forwards}
+@keyframes targetPop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes targetHit{to{transform:scale(1.7);opacity:0}}
+.winter-reward-pop{position:fixed;z-index:120;top:18%;left:50%;width:min(88%,360px);padding:14px 18px;border:1px solid #a6eaffaa;border-radius:16px;background:linear-gradient(135deg,#203b5a,#15192b);box-shadow:0 12px 40px #0009,0 0 30px #67dfff44;text-align:center;opacity:0;pointer-events:none;transform:translate(-50%,-10px)}
+.winter-reward-pop.on{animation:winterRewardPop 2.4s ease both}
+.winter-reward-pop strong,.winter-reward-pop small{display:block}
+.winter-reward-pop strong{color:#eafaff;font-size:16px}
+.winter-reward-pop small{margin-top:4px;color:#c3d6e9;font-size:12px}
+@keyframes winterRewardPop{0%{opacity:0;transform:translate(-50%,-14px) scale(.94)}12%,78%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-8px) scale(.98)}}
+.arena-help{margin:7px 0 0;color:#9eb2ce;font-size:11px;text-align:center}
+.bp-rewards{display:flex;flex-direction:column;gap:7px}
+.bp-tier{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px;align-items:stretch;padding:7px;border:1px solid #ffffff12;border-radius:13px;background:#111726}
+.bp-tier.ready{border-color:#6edfff66;box-shadow:0 0 16px #50cfff14}
+.bp-tier-number{display:flex;align-items:center;justify-content:center;border-radius:9px;background:#1e2d46;color:#d9f5ff;font-size:11px;font-weight:900}
+.bp-reward{min-width:0;padding:7px;border-radius:9px;background:#182138}
+.bp-reward.premium{background:linear-gradient(145deg,#40341e,#202037)}
+.bp-reward small{display:block;color:#91aac7;font-size:8px;font-weight:900;letter-spacing:.7px}
+.bp-reward b{display:block;min-height:28px;margin:4px 0;color:#f2f5ff;font-size:10px;line-height:1.3}
+.bp-reward button{width:100%;padding:6px 4px;font-size:9px}
+.bp-reward.premium b{color:#ffe8a6}
+.winter-offer{position:fixed;inset:0;z-index:110;display:none;align-items:center;justify-content:center;padding:18px;background:#050915eF;backdrop-filter:blur(12px)}
+.winter-offer.on{display:flex}
+.winter-offer-dialog{position:relative;width:min(100%,420px);padding:24px 20px;border:1px solid #8bdfff88;border-radius:24px;background:radial-gradient(circle at 50% 0%,#76dfff2e,transparent 42%),linear-gradient(145deg,#172842,#101322);box-shadow:0 25px 90px #000b,0 0 45px #56cfff22;text-align:center;animation:caseDialogIn .35s cubic-bezier(.2,.8,.2,1) both}
+.winter-offer-dialog .offer-icon{font-size:42px}
+.winter-offer-dialog h2{margin:7px 0;font-size:24px}
+.winter-offer-dialog p{color:#b9c9df;font-size:13px;line-height:1.5}
+.winter-offer-dialog .offer-price{margin:14px 0;color:#ffe399;font-size:18px;font-weight:900}
+.winter-offer-dialog .btn{width:100%;margin-top:8px}
+.winter-offer-dialog .offer-later{background:#26334a;color:#dcecff}
+.bp-empty{padding:12px;color:#9fb0c9;font-size:12px;text-align:center}
+@media(max-width:370px){nav button{font-size:9px}.winter-tab{padding-left:11px;padding-right:11px}.bp-tier{grid-template-columns:25px 1fr 1fr;gap:4px;padding:5px}.bp-reward{padding:6px 5px}}
+@media(prefers-reduced-motion:reduce){.arena-target,.winter-offer-dialog,.winter-reward-pop.on{animation:none;opacity:1;transform:translateX(-50%)}.bp-progress i{transition:none}}
 </style>
 </head>
 <body>
@@ -184,6 +267,61 @@ h2{margin:6px 0 10px;font-size:18px}
    <div class="foot">Каждый кейс открывается один раз за указанную цену. Удачи!</div>
   </section>
 
+  <section class="tab winter-tab" id="t-winter">
+   <div class="bp-hero">
+    <div class="bp-kicker">❄ AUREX WINTER 2026 · СЕЗОННЫЙ ПРОПУСК</div>
+    <h2>Winter Battle Pass</h2>
+    <p>50 уровней наград, ежедневные задания и зимняя арена. Прогресс и награды сохраняются на сервере.</p>
+    <div class="bp-level"><strong id="winterLevel">Уровень 0 / 50</strong><span id="winterXpLabel">0 / 100 BP XP</span></div>
+    <div class="bp-progress"><i id="winterXpBar"></i></div>
+    <div class="bp-hero-actions">
+     <button class="btn ice" id="winterOfferButton">⭐ Открыть Premium · 149</button>
+     <button class="btn" id="winterRefresh">Обновить</button>
+    </div>
+   </div>
+   <div class="winter-stats">
+    <div class="winter-stat">❄ Снежинки<b id="winterSnowflakes">0</b></div>
+    <div class="winter-stat">🎁 Кейсы<b id="winterCaseCount">0</b></div>
+    <div class="winter-stat">⚡ Бустеры<b id="winterBoosterCount">0</b></div>
+   </div>
+   <button class="btn ice" id="winterBoosterUse">⚡ Использовать бустер клика · 60 сек</button>
+   <div class="winter-panel">
+    <h3>✨ Зимняя коллекция</h3><div id="winterCollection" class="bp-empty">Пока нет сезонных предметов</div>
+   </div>
+   <div class="winter-panel">
+    <h3>🎯 Snowball Arena</h3>
+    <div class="arena-card">
+     <div class="arena-status"><span id="arenaTimer">Раунд · 30 сек</span><span id="arenaScore">Очки · 0</span></div>
+     <div id="arenaTargets" aria-label="Мишени арены"></div>
+    </div>
+    <p class="arena-help">Попадай по снежным мишеням. Результат и BP XP засчитываются сервером.</p>
+    <div class="bp-action-grid">
+     <button class="btn ice" id="arenaStart">❄ Начать раунд</button>
+     <button class="btn" id="arenaSound" aria-pressed="false">🔇 Звук выкл.</button>
+    </div>
+   </div>
+   <div class="winter-panel">
+    <h3>📦 Зимние кейсы</h3>
+    <div class="winter-case-row"><span>Кейс содержит снежинки, бустеры и эксклюзивные предметы.</span><button class="btn" id="winterCaseOpen">Открыть</button></div>
+   </div>
+   <div class="winter-panel">
+    <h3>📅 Ежедневные задания</h3><div id="winterDailyTasks"></div>
+   </div>
+   <div class="winter-panel">
+    <h3>🗓 Еженедельные задания</h3><div id="winterWeeklyTasks"></div>
+   </div>
+   <div class="winter-panel">
+    <div class="lb-head"><h3>🏆 Рекорды Snowball Arena</h3><button class="btn" id="arenaLeaderboardRefresh">Обновить</button></div>
+    <div class="lb-status" id="arenaLeaderboardStatus">Загрузка рейтинга…</div>
+    <div id="arenaLeaderboard"></div>
+   </div>
+   <div class="winter-panel">
+    <h3>🎁 50 уровней наград</h3>
+    <p class="arena-help">Забирай награду после достижения уровня. Premium-ветка доступна после оплаты.</p>
+    <div class="bp-rewards" id="winterRewards"></div>
+   </div>
+  </section>
+
   <section class="tab" id="t-more">
    <div class="banner prestige">
     <b style="font-size:17px">♻️ Перерождение · <span id="rebirthCount">0</span></b>
@@ -219,10 +357,23 @@ h2{margin:6px 0 10px;font-size:18px}
   <button data-tab="t-up"><i>⚙️</i>Апгрейды</button>
   <button data-tab="t-shop"><i>⭐</i>Магазин</button>
   <button data-tab="t-more"><i>🎁</i>Ивенты</button>
- <button data-tab="t-cases"><i>💎</i>Кейсы</button>
+  <button data-tab="t-cases"><i>💎</i>Кейсы</button>
+  <button class="winter-nav" id="winterNav" data-tab="t-winter"><i>❄️</i>Зима</button>
  </nav>
 </div>
 <div class="toast" id="toast"></div>
+<div class="winter-reward-pop" id="winterRewardPop" aria-live="polite"><strong id="winterRewardTitle"></strong><small id="winterRewardText"></small></div>
+<div class="winter-offer" id="winterOffer" aria-hidden="true">
+ <div class="winter-offer-dialog" role="dialog" aria-modal="true" aria-labelledby="winterOfferTitle">
+  <div class="offer-icon" aria-hidden="true">❄️</div>
+  <small class="bp-kicker">AUREX WINTER 2026</small>
+  <h2 id="winterOfferTitle">Зима начинается!</h2>
+  <p>Открой новый сезон Aurex с эксклюзивными наградами, уникальными кейсами, титулами и бонусами.</p>
+  <div class="offer-price">PREMIUM BATTLE PASS · 149 ⭐</div>
+  <button class="btn star" id="winterOfferBuy">КУПИТЬ PREMIUM</button>
+  <button class="btn offer-later" id="winterOfferLater">ПОЗЖЕ</button>
+ </div>
+</div>
 
 <script>
 /* ============ НАСТРОЙКИ ============ */
@@ -236,8 +387,11 @@ if (tg) { tg.ready(); tg.expand(); try{tg.setHeaderColor("#0b0d17");tg.setBackgr
 const initData = tg?.initData || "";
 const me = tg?.initDataUnsafe?.user || {id:0, first_name:"Игрок"};
 const $ = id => document.getElementById(id);
-const winterNow = (()=>{const d=new Date();return (d.getMonth()===11&&d.getDate()>=1)||d.getMonth()===0||d.getMonth()===1})();
-if(winterNow){
+let winterStateData=null,winterEnabled=false,winterOfferShown=false,winterPurchasePending=false,winterRewardBusy=false,winterRewardQueue=[];
+let winterServerTime=0,winterSyncPerf=0,winterArenaRun=null,winterArenaTimer=null,winterTargetTimer=null;
+let winterSoundEnabled=false;try{winterSoundEnabled=localStorage.getItem("aurex_winter_sound")==="on"}catch(e){}
+function enableWinterSnow(){
+  if(document.body.classList.contains("winter")) return;
   document.body.classList.add("winter");
   const snow=$("snow");
   for(let i=0;i<36;i++){
@@ -247,6 +401,22 @@ if(winterNow){
     flake.style.animationDuration=(7+Math.random()*12)+"s"; flake.style.animationDelay=(-Math.random()*18)+"s";
     snow.appendChild(flake);
   }
+}
+function disableWinterSnow(){document.body.classList.remove("winter");$("snow").replaceChildren()}
+function winterNowSeconds(){return winterServerTime+(performance.now()-winterSyncPerf)/1000}
+function showWinterReward(title,detail){
+  winterRewardQueue.push({title,detail});
+  if(winterRewardBusy)return;
+  const popup=$("winterRewardPop");
+  const next=()=>{
+    const reward=winterRewardQueue.shift();
+    if(!reward){winterRewardBusy=false;return}
+    winterRewardBusy=true;
+    $("winterRewardTitle").textContent=reward.title;$("winterRewardText").textContent=reward.detail;
+    popup.classList.remove("on");void popup.offsetWidth;popup.classList.add("on");
+    setTimeout(()=>{popup.classList.remove("on");next()},2450);
+  };
+  next();
 }
 
 const UPG = [
@@ -268,7 +438,7 @@ const SHOP = [
 const LEVELS = [0,500,3000,15000,80000,400000,2e6,1e7,5e7,3e8];
 const LVL_NAMES = ["Новичок","Стажёр","Джуниор","Мидл","Сеньор","Тимлид","CTO","Основатель","Легенда","AUREX-бог"];
 
-let S = {coins:0,aurex:0,total:0,allTime:0,rebirths:0,taps:0,lv:{},perm:{},claimedCons:{},claimedCases:{},channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
+let S = {coins:0,aurex:0,total:0,allTime:0,rebirths:0,taps:0,lv:{},perm:{},claimedCons:{},claimedCases:{},winterReceipts:[],channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
 const fmt = n => { n=Math.floor(n); if(n<1e3)return String(n); const u=["","K","M","B","T"]; let i=0,x=n; while(x>=1000&&i<4){x/=1000;i++} return (x<10?x.toFixed(2):x<100?x.toFixed(1):Math.floor(x))+u[i]; };
 const toast = (m)=>{const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)};
 const haptic = (t="light")=>{try{tg?.HapticFeedback?.impactOccurred(t)}catch(e){}};
@@ -276,8 +446,10 @@ const haptic = (t="light")=>{try{tg?.HapticFeedback?.impactOccurred(t)}catch(e){
 /* ---- сохранение: localStorage + Telegram CloudStorage ---- */
 function save(){
   const s = JSON.stringify(S);
-  try{localStorage.setItem("aurex_"+me.id,s)}catch(e){}
+  let localSaved=false;
+  try{localStorage.setItem("aurex_"+me.id,s);localSaved=true}catch(e){}
   try{tg?.CloudStorage?.setItem("state",s)}catch(e){}
+  return localSaved;
 }
 function load(cb){
   let local=null; try{local=JSON.parse(localStorage.getItem("aurex_"+me.id))}catch(e){}
@@ -289,6 +461,7 @@ function load(cb){
     S.aurex=Number.isFinite(aurex)?Math.max(0,Math.floor(aurex)):0;
     S.rebirths=Math.max(0,Math.floor(Number(S.rebirths)||0));
     S.lv=S.lv||{}; S.perm=S.perm||{}; S.claimedCons=S.claimedCons||{}; S.claimedCases=S.claimedCases||{};
+    S.winterReceipts=Array.isArray(S.winterReceipts)?S.winterReceipts:[];
     cb();
   };
   if(tg?.CloudStorage){ try{ tg.CloudStorage.getItem("state",(e,v)=>{let c=null;try{c=JSON.parse(v)}catch(_){} finish(c)}); return;}catch(e){} }
@@ -318,7 +491,7 @@ const earnAurex = amount => {
   S.aurex=(Number.isFinite(current)?Math.max(0,Math.floor(current)):0)+value;
 };
 let boostUntil=0, boostReadyAt=0;
-const tapBoost = () => Date.now()<boostUntil ? 5 : 1;
+const tapBoost = () => (Date.now()<boostUntil ? 5 : 1) * (winterEnabled&&winterStateData&&winterNowSeconds()<winterStateData.boosterUntil ? 2 : 1);
 let leaderboardPlayers=[], leaderboardRank=0, leaderboardCount=0;
 
 /* ---- UI ---- */
@@ -332,7 +505,7 @@ function renderTop(){
   $("lvlName").textContent=`${LVL_NAMES[i]} · ур.${i+1} · ♻️${S.rebirths}`;
   $("lvlBar").style.width = next? Math.min(100,(S.total-cur)/(next-cur)*100)+"%" : "100%";
   document.body.classList.toggle("skin-neon", !!S.perm.skin);
-  $("seasonNote").textContent=winterNow?"❄ Зимний сезон · снег до конца февраля":"Зимний сезон со снегом начнётся 1 декабря";
+  $("seasonNote").textContent=winterEnabled?"❄ AUREX WINTER 2026 · Battle Pass уже активен":"";
   const boostBtn=$("boostBtn"), now=Date.now();
   if(now<boostUntil){boostBtn.textContent=`⚡ Турбо-тап · ${Math.ceil((boostUntil-now)/1000)}с`;boostBtn.disabled=false}
   else if(now<boostReadyAt){boostBtn.textContent=`⚡ Перезарядка · ${Math.ceil((boostReadyAt-now)/1000)}с`;boostBtn.disabled=true}
@@ -396,6 +569,7 @@ function rollCasePrize(c){
   return prize;
 }
 function prizeLabel(prize){
+  if(prize.label) return prize.label;
   return prize.coins?`${fmt(prize.coins)} обычных монет`:`${fmt(prize.aurex)} Aurex Coins`;
 }
 let caseOpening=false,caseAnimationQueue=[];
@@ -415,7 +589,13 @@ function playNextCaseAnimation(){
   const winningIndex=22;
   const slots=Array.from({length:28},()=>c.prizes[Math.floor(Math.random()*c.prizes.length)]);
   slots[winningIndex]=prize;
-  track.innerHTML=slots.map(item=>`<div class="case-slot ${item.aurex?"rare":""}"><span>${item.aurex?"✦":"🪙"}</span><small>${prizeLabel(item)}</small></div>`).join("");
+  track.replaceChildren();
+  slots.forEach(item=>{
+    const slot=document.createElement("div");slot.className="case-slot"+(item.aurex||item.rare?" rare":"");
+    const icon=document.createElement("span");icon.textContent=item.icon||(item.aurex?"✦":"🪙");
+    const label=document.createElement("small");label.textContent=prizeLabel(item);
+    slot.append(icon,label);track.append(slot);
+  });
   track.style.transition="none";
   track.style.transform="translateX(0px)";
   overlay.classList.add("on");
@@ -431,7 +611,10 @@ function playNextCaseAnimation(){
   }));
   setTimeout(()=>{
     dialog.classList.remove("spinning");
-    $("caseOutcome").innerHTML=`${prize.rarity}<strong>${prize.coins?`+${fmt(prize.coins)} AUREX-монет`:`+${fmt(prize.aurex)} Aurex Coins`}</strong>`;
+    const outcome=$("caseOutcome"), result=document.createElement("strong");
+    outcome.textContent=prize.rarity||"Зимний дроп";
+    result.textContent=prize.resultText||(prize.coins?`+${fmt(prize.coins)} AUREX-монет`:`+${fmt(prize.aurex)} Aurex Coins`);
+    outcome.append(result);
     close.hidden=false;caseOpening=false;renderAll();haptic("heavy");
     if(caseAnimationQueue.length) setTimeout(playNextCaseAnimation,1000);
   },4700);
@@ -447,13 +630,35 @@ function openCase(id){
   if(prize.aurex) earnAurex(prize.aurex);
   save();renderAll();animateCaseOpening(c,prize);haptic("medium");
 }
-function renderAll(){renderTop();renderUp();renderShop();renderMore();renderCases()}
+function renderAll(){renderTop();renderUp();renderShop();renderMore();renderCases();renderWinter()}
 
 /* ---- тапы ---- */
 let combo=0, comboT=0;
+let coinTapTimeout=0;
+function animateCoinTap(event,critical){
+  const coin=$("coin"),coinRect=coin.getBoundingClientRect();
+  const x=Math.max(0,Math.min(1,(event.clientX-coinRect.left)/coinRect.width));
+  const y=Math.max(0,Math.min(1,(event.clientY-coinRect.top)/coinRect.height));
+  coin.style.setProperty("--tilt-x",`${(0.5-y)*22}deg`);
+  coin.style.setProperty("--tilt-y",`${(x-0.5)*22}deg`);
+  coin.style.setProperty("--tap-x",`${x*100}%`);coin.style.setProperty("--tap-y",`${y*100}%`);
+  coin.classList.remove("tap-burst","critical-tap");void coin.offsetWidth;
+  coin.classList.add("tap-burst");if(critical)coin.classList.add("critical-tap");
+  clearTimeout(coinTapTimeout);coinTapTimeout=setTimeout(()=>coin.classList.remove("tap-burst","critical-tap"),380);
+  const stageRect=$("stage").getBoundingClientRect(),centerX=event.clientX-stageRect.left,centerY=event.clientY-stageRect.top;
+  for(let i=0;i<6;i++){
+    const angle=Math.PI*2*i/6+(Math.random()-.5)*.24,distance=34+Math.random()*26;
+    const spark=document.createElement("i");spark.className="coin-spark"+(critical?" critical":"");
+    spark.style.left=`${centerX}px`;spark.style.top=`${centerY}px`;
+    spark.style.setProperty("--spark-x",`${Math.cos(angle)*distance}px`);
+    spark.style.setProperty("--spark-y",`${Math.sin(angle)*distance}px`);
+    $("stage").append(spark);setTimeout(()=>spark.remove(),520);
+  }
+}
 $("coin").addEventListener("pointerdown",e=>{
   e.preventDefault();
   let v=tapVal(), crit=Math.random()*100<critChance();
+  animateCoinTap(e,crit);
   if(crit) v*=5;
   earn(v); S.taps++;
   combo++; clearTimeout(comboT); comboT=setTimeout(()=>{combo=0;$("combo").textContent=""},900);
@@ -511,7 +716,7 @@ setInterval(()=>{if(Date.now()>=nextCrystalAt)spawnAurexCrystal()},3000);
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on")); $(b.dataset.tab).classList.add("on");
-  renderAll(); haptic();
+  renderAll(); if(b.dataset.tab==="t-winter"){syncWinter(false);syncWinterLeaderboard()} haptic();
 });
 $("caseList").addEventListener("click",e=>{
   const id=e.target.dataset?.case;
@@ -552,6 +757,268 @@ async function api(path,body){
   if(!r.ok) throw new Error(result.error||`API error ${r.status}`);
   return result;
 }
+const winterReceiptProcessing=new Set(),winterReceiptNeedsSave=new Set();
+function processWinterReceipts(receipts,quiet=false){
+  if(!Array.isArray(receipts))return;
+  receipts.forEach(receipt=>{
+    if(!receipt||typeof receipt.id!=="string"||winterReceiptProcessing.has(receipt.id))return;
+    if(!Number.isSafeInteger(receipt.amount)||receipt.amount<1||receipt.amount>1000000)return;
+    winterReceiptProcessing.add(receipt.id);
+    if(!S.winterReceipts.includes(receipt.id)){
+      earn(receipt.amount);S.winterReceipts.push(receipt.id);
+      if(S.winterReceipts.length>512)S.winterReceipts=S.winterReceipts.slice(-512);
+      if(!save())winterReceiptNeedsSave.add(receipt.id);
+      renderTop();
+      if(!quiet)toast(`+${fmt(receipt.amount)} AUREX-монет за задание`);
+    }
+    const saved=!winterReceiptNeedsSave.has(receipt.id)||save();
+    if(saved){
+      winterReceiptNeedsSave.delete(receipt.id);
+      api("/api/winter/receipt/ack",{receiptId:receipt.id}).catch(()=>{}).finally(()=>winterReceiptProcessing.delete(receipt.id));
+    }else winterReceiptProcessing.delete(receipt.id);
+  });
+}
+function updateWinterState(state,showOffer=false,quietReceipts=false){
+  processWinterReceipts(state?.currencyReceipts,quietReceipts);
+  if(!state?.active){
+    winterEnabled=false;winterStateData=null;$("winterNav").style.display="none";hideWinterOffer();disableWinterSnow();
+    if($("t-winter").classList.contains("on")){
+      document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("on"));
+      document.querySelectorAll("nav button").forEach(button=>button.classList.remove("on"));
+      $("t-game").classList.add("on");document.querySelector('[data-tab="t-game"]').classList.add("on");
+    }
+    renderTop();return;
+  }
+  const previousLevel=winterStateData?.level;
+  winterEnabled=true;winterStateData=state;winterServerTime=state.serverTime;winterSyncPerf=performance.now();
+  $("winterNav").style.display="block";enableWinterSnow();renderWinter();
+  if(typeof previousLevel==="number"&&state.level>previousLevel)showWinterReward("Новый уровень!",`Battle Pass · уровень ${state.level}`);
+  if(showOffer&&state.offerAvailable&&!winterOfferShown){winterOfferShown=true;showWinterOffer()}
+}
+function showWinterOffer(){
+  if(!winterEnabled||!winterStateData||winterStateData.premium)return;
+  $("winterOffer").classList.add("on");$("winterOffer").setAttribute("aria-hidden","false");
+}
+function hideWinterOffer(){
+  $("winterOffer").classList.remove("on");$("winterOffer").setAttribute("aria-hidden","true");
+}
+function renderWinter(){
+  if(!winterEnabled||!winterStateData)return;
+  const state=winterStateData,inventory=state.inventory||{};
+  $("winterLevel").textContent=`Уровень ${state.level} / 50`;
+  $("winterXpLabel").textContent=state.level>=50?"Сезон завершён":`${state.xpInLevel} / 100 BP XP · всего ${fmt(state.xp)}`;
+  $("winterXpBar").style.width=(state.level>=50?100:state.xpInLevel)+"%";
+  $("winterSnowflakes").textContent=fmt(inventory.snowflakes||0);
+  $("winterCaseCount").textContent=fmt(inventory.cases||0);
+  $("winterBoosterCount").textContent=fmt(inventory.boosters||0);
+  $("winterCaseOpen").disabled=!(inventory.cases>0)||caseOpening;
+  $("winterBoosterUse").disabled=!(inventory.boosters>0);
+  const collection=[...(inventory.avatars||[]),...(inventory.titles||[]),...(inventory.effects||[])];
+  if(inventory.winterVip)collection.unshift("Эксклюзивный Winter VIP");
+  $("winterCollection").textContent=collection.length?collection.join(" · "):"Пока нет сезонных предметов";
+  $("winterOfferButton").textContent=state.premium?"✓ Premium открыт · посмотреть награды":"⭐ Открыть Premium · 149";
+  $("winterOfferBuy").disabled=winterPurchasePending;
+  $("arenaStart").disabled=!!winterArenaRun;
+  $("arenaSound").textContent=winterSoundEnabled?"🔊 Звук вкл.":"🔇 Звук выкл.";
+  $("arenaSound").setAttribute("aria-pressed",String(winterSoundEnabled));
+  renderWinterTasks("daily",$("winterDailyTasks"));
+  renderWinterTasks("weekly",$("winterWeeklyTasks"));
+  renderWinterRewards();
+  renderTop();
+}
+function renderWinterTasks(period,container){
+  const tasks=winterStateData.tasks?.[period]||[];
+  container.replaceChildren();
+  tasks.forEach(task=>{
+    const row=document.createElement("div");row.className="quest-row";
+    const copy=document.createElement("div");copy.className="quest-copy";
+    const title=document.createElement("b");title.textContent=task.title;
+    const desc=document.createElement("small");desc.textContent=`${task.description} · ${task.progress}/${task.goal} · +${fmt(task.coins)} AUREX · +${task.xp} BP XP`;
+    const progress=document.createElement("div");progress.className="quest-progress";
+    const bar=document.createElement("i");bar.style.width=Math.min(100,task.progress/task.goal*100)+"%";progress.append(bar);
+    copy.append(title,desc,progress);row.append(copy);
+    if(task.claimed){const mark=document.createElement("span");mark.className="done-mark";mark.textContent="✓ Получено";row.append(mark)}
+    else{const button=document.createElement("button");button.className="btn";button.textContent=task.progress>=task.goal?"Забрать":"В процессе";button.disabled=task.progress<task.goal;button.dataset.winterTask=task.id;row.append(button)}
+    container.append(row);
+  });
+}
+function renderWinterRewards(){
+  const container=$("winterRewards"),state=winterStateData;container.replaceChildren();
+  (state.rewards||[]).forEach(tier=>{
+    const row=document.createElement("div");row.className="bp-tier"+(tier.level<=state.level?" ready":"");
+    const number=document.createElement("div");number.className="bp-tier-number";number.textContent=tier.level;
+    row.append(number);
+    ["free","premium"].forEach(track=>{
+      const reward=tier[track],box=document.createElement("div");box.className="bp-reward"+(track==="premium"?" premium":"");
+      const label=document.createElement("small");label.textContent=track==="free"?"FREE":"PREMIUM";
+      const name=document.createElement("b");name.textContent=reward.name;
+      const button=document.createElement("button");button.className="btn"+(track==="premium"?" star":"");
+      button.dataset.winterClaim=track;button.dataset.level=tier.level;
+      const claimed=(state.claimed?.[track]||[]).includes(tier.level);
+      if(claimed){button.textContent="Получено";button.disabled=true}
+      else if(track==="premium"&&!state.premium){button.textContent="🔒 Закрыто";button.setAttribute("aria-label","Открыть Premium")}
+      else{button.textContent=tier.level<=state.level?"Забрать":"Закрыто";button.disabled=tier.level>state.level}
+      box.append(label,name,button);row.append(box);
+    });
+    container.append(row);
+  });
+}
+function winterHitsLabel(count){
+  const mod100=count%100,mod10=count%10;
+  const noun=mod10===1&&mod100!==11?"попадание":mod10>=2&&mod10<=4&&(mod100<12||mod100>14)?"попадания":"попаданий";
+  return `${count} ${noun}`;
+}
+async function syncWinter(showOffer=false){
+  if(!initData)return;
+  try{const response=await api("/api/winter/state",{});updateWinterState(response,showOffer)}
+  catch(error){$("winterNav").style.display="none";winterEnabled=false;winterStateData=null;disableWinterSnow();if(showOffer)toast("Не удалось проверить статус зимнего сезона")}
+}
+async function syncWinterLeaderboard(){
+  if(!winterEnabled)return;
+  try{
+    const response=await api("/api/winter/arena/leaderboard",{});
+    const list=$("arenaLeaderboard");list.replaceChildren();
+    (response.players||[]).forEach((player,index)=>{
+      const row=document.createElement("div");row.className="lb"+(player.isMe?" me":"");
+      const name=document.createElement("span");name.textContent=`${index+1}. ${player.name}${player.isMe?" (ты)":""}`;
+      const score=document.createElement("b");score.textContent=fmt(player.score);
+      row.append(name,score);list.append(row);
+    });
+    $("arenaLeaderboardStatus").textContent=response.players?.length?"Лучшие результаты сезона":"Пока нет завершённых раундов";
+  }catch(error){$("arenaLeaderboardStatus").textContent="Не удалось загрузить рейтинг арены"}
+}
+async function claimWinterTask(taskId){
+  try{
+    const response=await api("/api/winter/claim-task",{taskId});updateWinterState(response.state,false,true);
+    if(response.alreadyClaimed)toast("Задание уже получено");
+    else showWinterReward("Задание выполнено",`+${fmt(response.coinsAwarded)} AUREX-монет · +${response.xpGranted} BP XP`);
+  }
+  catch(error){toast(error.message==="task_not_completed"?"Сначала выполни задание":"Не удалось получить награду")}
+}
+async function claimWinterReward(track,level){
+  if(track==="premium"&&!winterStateData?.premium){showWinterOffer();return}
+  try{
+    const response=await api("/api/winter/claim-reward",{track,level:Number(level)});
+    updateWinterState(response.state);
+    if(response.alreadyClaimed)toast("Эта награда уже получена");else showWinterReward("Награда получена",response.reward.name);
+    haptic("heavy");
+  }catch(error){toast(error.message==="level_not_reached"?"Сначала набери нужный уровень":"Не удалось получить награду")}
+}
+function winterCaseLabel(reward){
+  if(reward.kind==="snowflakes")return `${reward.amount} снежинок`;
+  if(reward.kind==="booster")return "Бустер клика";
+  return reward.name;
+}
+async function openWinterCase(){
+  if(!winterStateData?.inventory?.cases||caseOpening||caseAnimationQueue.length)return;
+  $("winterCaseOpen").disabled=true;
+  let requestId="",key=`aurex_winter_case_request_${me.id}`;
+  try{
+    try{requestId=localStorage.getItem(key)||""}catch(e){}
+    if(!requestId)requestId=window.crypto?.randomUUID?window.crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    try{localStorage.setItem(key,requestId)}catch(e){}
+    const response=await api("/api/winter/case/open",{requestId});
+    try{localStorage.removeItem(key)}catch(e){}updateWinterState(response.state);
+    const reward=response.reward,label=winterCaseLabel(reward);
+    const prize={...reward,rarity:"Зимний дроп",label,rare:true,resultText:`Получено: ${label}`};
+    const prizes=[
+      {label:"Снежинки",icon:"❄️"},{label:"Бустер",icon:"⚡"},
+      {label:"Аватар",icon:"🦊"},{label:"Титул",icon:"🏅"},
+    ];
+    animateCaseOpening({name:"Winter case",icon:"❄️",prizes},prize);haptic("medium");
+  }catch(error){$("winterCaseOpen").disabled=false;toast("Не удалось открыть зимний кейс")}
+}
+async function useWinterBooster(){
+  try{const state=await api("/api/winter/booster/use",{});updateWinterState(state);toast("Бустер клика активирован на 60 секунд · ×2")}
+  catch(error){toast("Нет доступных зимних бустеров")}
+}
+function playWinterSound(){
+  if(!winterSoundEnabled)return;
+  try{
+    const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
+    const context=new Audio(),osc=context.createOscillator(),gain=context.createGain();
+    osc.frequency.value=720;gain.gain.setValueAtTime(.07,context.currentTime);gain.gain.exponentialRampToValueAtTime(.001,context.currentTime+.12);
+    osc.connect(gain);gain.connect(context.destination);osc.start();osc.stop(context.currentTime+.12);osc.onended=()=>context.close();
+  }catch(error){}
+}
+function removeArenaTarget(target){
+  if(!target.isConnected)return;
+  target.classList.add("arena-hit");setTimeout(()=>target.remove(),260);
+}
+function spawnArenaTarget(){
+  if(!winterArenaRun||performance.now()>=winterArenaRun.endPerf)return;
+  const token=winterArenaRun.tokens.shift();if(!token)return;
+  const target=document.createElement("button");target.type="button";target.className="arena-target";target.textContent="❄️";
+  target.style.left=(5+Math.random()*78)+"%";target.style.top=(5+Math.random()*58)+"%";
+  target.onclick=async()=>{
+    if(target.disabled||!winterArenaRun)return;
+    target.disabled=true;
+    try{
+      const response=await api("/api/winter/arena/hit",{runId:winterArenaRun.runId,targetToken:token});
+      $("arenaScore").textContent=`Очки · ${response.score}`;winterArenaRun.hits=response.hits;playWinterSound();removeArenaTarget(target);haptic("light");
+    }catch(error){
+      removeArenaTarget(target);
+      if(error.message==="hit_too_fast")toast("Снежки летят слишком быстро — попробуй чуть медленнее");
+    }
+  };
+  $("arenaTargets").append(target);setTimeout(()=>target.remove(),1800);
+  winterTargetTimer=setTimeout(spawnArenaTarget,550+Math.random()*500);
+}
+async function finishWinterArena(run){
+  if(!run||run.finished)return;run.finished=true;
+  clearInterval(winterArenaTimer);clearTimeout(winterTargetTimer);$("arenaTargets").replaceChildren();
+  $("arenaTimer").textContent="Сохраняем результат…";
+  try{
+    const response=await api("/api/winter/arena/finish",{runId:run.runId});
+    winterArenaRun=null;$("arenaStart").disabled=false;
+    $("arenaTimer").textContent=`Раунд завершён · ${winterHitsLabel(response.result.hits)}`;
+    showWinterReward("Раунд завершён",`${response.result.score} очков · +${response.result.xpGranted} BP XP`);
+    await syncWinter(false);await syncWinterLeaderboard();haptic("heavy");
+  }catch(error){
+    winterArenaRun=null;$("arenaStart").disabled=false;$("arenaTimer").textContent="Раунд не сохранён";
+    toast("Не удалось сохранить результат арены");
+  }
+}
+async function startWinterArena(){
+  if(winterArenaRun||!winterEnabled)return;
+  $("arenaStart").disabled=true;$("arenaTimer").textContent="Подготовка арены…";
+  try{
+    const response=await api("/api/winter/arena/start",{});
+    winterArenaRun={runId:response.runId,tokens:response.targetTokens.slice(),hits:0,endPerf:performance.now()+response.duration*1000};
+    $("arenaScore").textContent="Очки · 0";$("arenaTargets").replaceChildren();spawnArenaTarget();
+    winterArenaTimer=setInterval(()=>{
+      if(!winterArenaRun)return;
+      const left=Math.max(0,Math.ceil((winterArenaRun.endPerf-performance.now())/1000));
+      $("arenaTimer").textContent=left?`Раунд · ${left} сек`:"Завершение…";
+      if(left===0)finishWinterArena(winterArenaRun);
+    },200);
+  }catch(error){$("arenaStart").disabled=false;$("arenaTimer").textContent="Раунд · 30 сек";toast("Не удалось начать арену")}
+}
+$("winterRefresh").onclick=()=>syncWinter(false);
+$("winterOfferButton").onclick=()=>{if(winterStateData?.premium){$("t-winter").scrollTo({top:$("winterRewards").offsetTop,behavior:"smooth"});return}showWinterOffer()};
+$("winterOfferBuy").onclick=()=>buyStarsItem("winter_pass",$("winterOfferBuy"));
+$("winterOfferLater").onclick=async()=>{
+  try{const state=await api("/api/winter/offer-dismiss",{});hideWinterOffer();updateWinterState(state);toast("Хорошо, предложение можно открыть позже в Battle Pass")}
+  catch(error){toast("Не удалось сохранить выбор")}
+};
+$("winterCaseOpen").onclick=openWinterCase;
+$("winterBoosterUse").onclick=useWinterBooster;
+$("arenaStart").onclick=startWinterArena;
+$("arenaLeaderboardRefresh").onclick=syncWinterLeaderboard;
+$("arenaSound").onclick=()=>{
+  winterSoundEnabled=!winterSoundEnabled;try{localStorage.setItem("aurex_winter_sound",winterSoundEnabled?"on":"off")}catch(e){}
+  renderWinter();if(winterSoundEnabled)playWinterSound();
+};
+$("winterDailyTasks").addEventListener("click",event=>{const button=event.target.closest("[data-winter-task]");if(button)claimWinterTask(button.dataset.winterTask)});
+$("winterWeeklyTasks").addEventListener("click",event=>{const button=event.target.closest("[data-winter-task]");if(button)claimWinterTask(button.dataset.winterTask)});
+$("winterRewards").addEventListener("click",event=>{const button=event.target.closest("[data-winter-claim]");if(button)claimWinterReward(button.dataset.winterClaim,button.dataset.level)});
+async function syncWinterAfterPurchase(attempts=6){
+  winterPurchasePending=true;$("winterOfferBuy").disabled=true;
+  await syncWinter(false);
+  if(winterStateData?.premium){winterPurchasePending=false;$("winterOfferBuy").disabled=false;hideWinterOffer();showWinterReward("PREMIUM открыт","Доступны все 50 уровней наград!");return}
+  if(attempts>1)setTimeout(()=>syncWinterAfterPurchase(attempts-1),1200);
+  else{winterPurchasePending=false;$("winterOfferBuy").disabled=false;toast("Оплата принята, Premium синхронизируется с сервером")}
+}
 async function syncLeaderboard(){
   if(!initData){ $("lbStatus").textContent=restoreLeaderboard()?"Сохранённый рейтинг на этом устройстве":"Открой игру в Telegram, чтобы попасть в общий рейтинг"; return; }
   try{
@@ -588,14 +1055,14 @@ async function buyStarsItem(id,button){
     if(!res.link) throw new Error(res.error||"no link");
     tg.openInvoice(res.link, async status=>{
       if(status==="paid"){
-        toast(id==="platinum_case"?"Оплата прошла! Открываем Platinium case 💎":"Оплата прошла! Спасибо за поддержку AUREX ❤️");
-        if(id==="platinum_case") await syncPaidCase(claimedBefore);
+        if(id==="winter_pass"){toast("Оплата прошла! Проверяем Premium Battle Pass ⭐");await syncWinterAfterPurchase()}
+        else if(id==="platinum_case"){toast("Оплата прошла! Открываем Platinium case 💎");await syncPaidCase(claimedBefore)}
         else await syncPurchases();
       }
       else if(status==="failed"){ toast("Оплата не прошла"); }
-      renderShop();renderCases();
+      button.disabled=id==="winter_pass"&&winterPurchasePending;renderShop();renderCases();renderWinter();
     });
-  }catch(err){ toast("Магазин временно недоступен"); renderShop();renderCases(); }
+  }catch(err){ button.disabled=false;toast("Магазин временно недоступен"); renderShop();renderCases();renderWinter(); }
 }
 $("shopList").addEventListener("click",e=>{
   const button=e.target.closest("[data-buy]");if(button) buyStarsItem(button.dataset.buy,button);
@@ -641,6 +1108,7 @@ setInterval(()=>{
 },250);
 setInterval(save,5000);
 setInterval(()=>{if(initData)syncLeaderboard()},15000);
+setInterval(()=>{if(initData)syncWinter(true)},60000);
 
 /* ---- старт ---- */
 load(()=>{
@@ -650,7 +1118,7 @@ load(()=>{
   if(off>10){ earn(off); setTimeout(()=>toast(`Пока тебя не было: +${fmt(off)} 🪙`),600); }
   S.lastSeen=Date.now(); window.addEventListener("beforeunload",()=>{S.lastSeen=Date.now();save()});
   document.addEventListener("visibilitychange",()=>{S.lastSeen=Date.now();save()});
-  renderAll(); syncPurchases(); syncLeaderboard();
+  renderAll(); syncPurchases(); syncLeaderboard(); syncWinter(true);
 });
 </script>
 </body>
