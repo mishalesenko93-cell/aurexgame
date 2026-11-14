@@ -77,6 +77,63 @@ h2{margin:6px 0 10px;font-size:18px}
 .toast.on{opacity:1}
 .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:8px}
 .foot a{color:var(--accent);text-decoration:none}
+.rare-wallet{display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:7px 12px;border:1px solid #68e8ff55;border-radius:999px;background:linear-gradient(100deg,#132647,#26204a);color:#b9f4ff;font-size:12px;font-weight:800;box-shadow:0 0 20px #51dfff22}
+.rare-wallet b{color:#fff;font-size:14px}
+.crystal-hint{margin:4px 0;color:#91a7d8;font-size:11px;text-align:center}
+.aurex-crystal{position:absolute;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:62px;height:62px;border:1px solid #c5f8ff;border-radius:18px;background:radial-gradient(circle at 35% 25%,#fff,#80f5ff 30%,#579dff 70%,#432bb7);box-shadow:0 0 32px #65e9ffbb,inset 0 0 14px #fff9;color:#112042;cursor:pointer;animation:crystalfloat 1.2s ease-in-out infinite alternate}
+.aurex-crystal span{font-size:25px;line-height:1}
+.aurex-crystal small{font-size:8px;font-weight:900;letter-spacing:1px}
+@keyframes crystalfloat{to{transform:translateY(-8px) rotate(7deg);box-shadow:0 0 44px #65e9ff}}
+.cases-hero{position:relative;flex-shrink:0;overflow:hidden;padding:20px;border:1px solid #a477ff55;border-radius:22px;background:radial-gradient(circle at 90% 0%,#783dff55,transparent 42%),linear-gradient(145deg,#17234c,#111426 75%);box-shadow:0 16px 40px #0005}
+.cases-kicker{color:#91dfff;font-size:10px;font-weight:900;letter-spacing:2px}
+.cases-hero h2{margin:7px 0;font-size:25px}
+.cases-hero p{margin:0;color:#b1bad8;font-size:12px;line-height:1.55}
+.case-card{position:relative;display:grid;grid-template-columns:78px 1fr;align-items:center;gap:14px;min-height:148px;margin-top:12px;padding:16px;overflow:hidden;border:1px solid #ffffff14;border-radius:20px;background:linear-gradient(120deg,#171b30,#111321);box-shadow:0 12px 30px #0004}
+.case-card::after{position:absolute;inset:0;content:"";pointer-events:none;background:linear-gradient(110deg,transparent 25%,#ffffff08 48%,transparent 70%);transform:translateX(-100%);transition:transform .65s}
+.case-card:hover::after{transform:translateX(100%)}
+.case-card.bronze{border-color:#d8915b55;background:linear-gradient(120deg,#35231e,#151522 75%)}
+.case-card.platinum{border-color:#82b8ff88;background:radial-gradient(circle at 5% 50%,#31519b55,transparent 45%),linear-gradient(120deg,#1d2744,#111321 80%);box-shadow:0 12px 34px #397cff1c}
+.case-art{display:flex;align-items:center;justify-content:center;width:76px;height:86px;border:1px solid #ffd06e88;border-radius:18px;background:linear-gradient(145deg,#ffdf82,#bd681a 55%,#542544);box-shadow:0 8px 26px #ffae3c33;font-size:38px;text-shadow:0 3px 8px #482200}
+.bronze .case-art{border-color:#ffc18a88;background:linear-gradient(145deg,#f3c59a,#a2522d 58%,#41243b);box-shadow:0 8px 26px #d7825333}
+.platinum .case-art{border-color:#b3e8ff;background:linear-gradient(145deg,#e1faff,#61a7ff 45%,#573bd5);box-shadow:0 8px 30px #55c5ff55}
+.case-info{position:relative;z-index:1;min-width:0}
+.case-info h3{margin:0 0 4px;font-size:18px}
+.case-info p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}
+.case-prize{display:block;margin:7px 0;color:#c5d4ff;font-size:10px}
+.case-buy{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.case-buy small{color:#a7efff;font-size:11px;font-weight:800}
+.case-buy .btn{padding:9px 12px}
+.case-buy .btn:disabled{opacity:.7}
+.case-overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;background:#070914eF;backdrop-filter:blur(12px)}
+.case-overlay.on{display:flex}
+.case-dialog{position:relative;width:min(100%,520px);padding:24px 18px 20px;overflow:hidden;border:1px solid #83dfff77;border-radius:24px;background:radial-gradient(circle at 50% 0%,#5746a855,transparent 48%),linear-gradient(145deg,#191d37,#0f1222);box-shadow:0 24px 90px #000b,0 0 50px #54bbff22;text-align:center;animation:caseDialogIn .35s cubic-bezier(.2,.8,.2,1) both}
+.case-dialog::before{position:absolute;inset:0;content:"";pointer-events:none;background:linear-gradient(110deg,transparent 20%,#ffffff0a 50%,transparent 80%);animation:caseShine 2.4s linear infinite}
+.case-dialog>*{position:relative}
+.case-close{position:absolute;z-index:2;top:10px;right:12px;width:34px;height:34px;border:1px solid #ffffff22;border-radius:50%;background:#ffffff0b;color:#fff;font-size:22px;cursor:pointer}
+.case-dialog .cases-kicker{display:block;margin:4px 38px 5px}
+.case-dialog h2{margin:0 32px 18px;font-size:22px}
+.case-machine{position:relative;overflow:hidden;padding:14px 0;border:1px solid #ffffff1a;border-radius:16px;background:linear-gradient(180deg,#0b0e1b,#171a2c);box-shadow:inset 0 0 28px #0008}
+.case-machine::before,.case-machine::after{position:absolute;z-index:1;top:0;bottom:0;width:48px;content:"";pointer-events:none}
+.case-machine::before{left:0;background:linear-gradient(90deg,#0d1020,transparent)}
+.case-machine::after{right:0;background:linear-gradient(270deg,#0d1020,transparent)}
+.case-marker{position:absolute;z-index:2;top:0;bottom:0;left:50%;width:3px;transform:translateX(-50%);background:linear-gradient(180deg,#fff3a7,#ffb800,#fff3a7);box-shadow:0 0 16px #ffc928}
+.case-marker::before,.case-marker::after{position:absolute;left:50%;width:0;height:0;content:"";transform:translateX(-50%)}
+.case-marker::before{top:0;border:7px solid transparent;border-top:9px solid #ffdc72}
+.case-marker::after{bottom:0;border:7px solid transparent;border-bottom:9px solid #ffdc72}
+.case-track{display:flex;gap:10px;width:max-content;padding:0 12px;transform:translateX(0);transition:transform 4.6s cubic-bezier(.08,.72,.12,1);will-change:transform}
+.case-slot{display:flex;flex:0 0 112px;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:112px;height:108px;padding:10px;border:1px solid #ffffff22;border-radius:13px;background:linear-gradient(150deg,#26304b,#151a2c);color:#eaf1ff}
+.case-slot span{font-size:27px}
+.case-slot small{font-size:10px;line-height:1.35}
+.case-slot.rare{border-color:#62e8ff99;background:linear-gradient(150deg,#1d4960,#20234a);box-shadow:inset 0 0 22px #55e8ff1b}
+.case-outcome{min-height:44px;padding:14px 8px 0;color:#aab5d9;font-size:13px}
+.case-outcome strong{display:block;margin-top:4px;color:#b9f4ff;font-size:19px}
+.case-dialog.spinning .case-art-open{animation:caseShake .42s ease-in-out infinite alternate}
+.case-art-open{display:inline-flex;align-items:center;justify-content:center;width:54px;height:54px;margin-bottom:8px;border:1px solid #b1eaff88;border-radius:16px;background:linear-gradient(145deg,#bff7ff,#458dff 55%,#5a36d5);box-shadow:0 0 24px #70dcff66;font-size:29px}
+@keyframes caseShake{from{transform:rotate(-8deg) scale(.94)}to{transform:rotate(8deg) scale(1.06);box-shadow:0 0 36px #70dcffbb}}
+@keyframes caseDialogIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes caseShine{to{transform:translateX(120%)}}
+@media(prefers-reduced-motion:reduce){.case-track{transition-duration:.01ms}.case-dialog::before{animation:none}.case-dialog.spinning .case-art-open{animation:none}}
+@media(max-width:360px){.case-card{grid-template-columns:62px 1fr;gap:10px;padding:12px}.case-art{width:62px;height:74px;font-size:32px}.case-info h3{font-size:16px}}
 </style>
 </head>
 <body>
@@ -89,6 +146,8 @@ h2{margin:6px 0 10px;font-size:18px}
  <main>
   <section class="tab on" id="t-game">
    <div class="balance"><div class="n" id="bal">0</div><div class="s">AUREX-монет</div></div>
+   <div style="text-align:center"><div class="rare-wallet">✦ Aurex Coins <b id="rareBalance">0</b></div></div>
+   <div class="crystal-hint">Редкий кристалл появляется во время игры — успей поймать его!</div>
    <div class="combo" id="combo"></div>
    <div class="boost-wrap"><button class="btn alt" id="boostBtn">⚡ Турбо-тап · готов</button></div>
    <div class="stage" id="stage">
@@ -114,6 +173,17 @@ h2{margin:6px 0 10px;font-size:18px}
    <div class="foot">Оплата через Telegram Stars. Вопросы по оплате: /paysupport в боте</div>
   </section>
 
+  <section class="tab" id="t-cases">
+   <div class="cases-hero">
+    <div class="cases-kicker">AUREX BLACK MARKET · DROP SERIES 01</div>
+    <h2>Открывай кейсы</h2>
+    <p>Лови сияющие кристаллы во время майнинга и копи Aurex Coins — они выпадают гораздо реже обычных монет.</p>
+    <div class="rare-wallet">✦ Твой баланс <b id="caseBalance">0</b></div>
+   </div>
+   <div id="caseList"></div>
+   <div class="foot">Каждый кейс открывается один раз за указанную цену. Удачи!</div>
+  </section>
+
   <section class="tab" id="t-more">
    <div class="banner prestige">
     <b style="font-size:17px">♻️ Перерождение · <span id="rebirthCount">0</span></b>
@@ -134,11 +204,22 @@ h2{margin:6px 0 10px;font-size:18px}
    <div class="foot">AUREX COMPANY · <a href="#" data-ch>t.me/AurexCompany</a></div>
   </section>
  </main>
+ <div class="case-overlay" id="caseOpening" aria-hidden="true">
+  <div class="case-dialog" id="caseDialog" role="dialog" aria-modal="true" aria-labelledby="caseDialogTitle">
+   <span class="case-art-open" id="caseArtOpen" aria-hidden="true">💎</span>
+   <button class="case-close" id="caseClose" type="button" aria-label="Закрыть" hidden>×</button>
+   <small class="cases-kicker">AUREX · CASE OPENING</small>
+   <h2 id="caseDialogTitle">Кейс открывается…</h2>
+   <div class="case-machine" id="caseMachine"><div class="case-marker"></div><div class="case-track" id="caseTrack"></div></div>
+   <div class="case-outcome" id="caseOutcome" aria-live="polite">Лови свой дроп</div>
+  </div>
+ </div>
  <nav>
   <button class="on" data-tab="t-game"><i>🪙</i>Майнинг</button>
   <button data-tab="t-up"><i>⚙️</i>Апгрейды</button>
   <button data-tab="t-shop"><i>⭐</i>Магазин</button>
   <button data-tab="t-more"><i>🎁</i>Ивенты</button>
+ <button data-tab="t-cases"><i>💎</i>Кейсы</button>
  </nav>
 </div>
 <div class="toast" id="toast"></div>
@@ -187,7 +268,7 @@ const SHOP = [
 const LEVELS = [0,500,3000,15000,80000,400000,2e6,1e7,5e7,3e8];
 const LVL_NAMES = ["Новичок","Стажёр","Джуниор","Мидл","Сеньор","Тимлид","CTO","Основатель","Легенда","AUREX-бог"];
 
-let S = {coins:0,total:0,allTime:0,rebirths:0,taps:0,lv:{},perm:{},claimedCons:{},channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
+let S = {coins:0,aurex:0,total:0,allTime:0,rebirths:0,taps:0,lv:{},perm:{},claimedCons:{},claimedCases:{},channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
 const fmt = n => { n=Math.floor(n); if(n<1e3)return String(n); const u=["","K","M","B","T"]; let i=0,x=n; while(x>=1000&&i<4){x/=1000;i++} return (x<10?x.toFixed(2):x<100?x.toFixed(1):Math.floor(x))+u[i]; };
 const toast = (m)=>{const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)};
 const haptic = (t="light")=>{try{tg?.HapticFeedback?.impactOccurred(t)}catch(e){}};
@@ -204,8 +285,10 @@ function load(cb){
     const pick=[local,cloud].filter(Boolean).sort((a,b)=>(b.total||0)-(a.total||0))[0];
     if(pick) S=Object.assign(S,pick);
     S.allTime=Math.max(Number(S.allTime)||0,Number(S.total)||0);
+    const aurex=Number(S.aurex);
+    S.aurex=Number.isFinite(aurex)?Math.max(0,Math.floor(aurex)):0;
     S.rebirths=Math.max(0,Math.floor(Number(S.rebirths)||0));
-    S.lv=S.lv||{}; S.perm=S.perm||{}; S.claimedCons=S.claimedCons||{};
+    S.lv=S.lv||{}; S.perm=S.perm||{}; S.claimedCons=S.claimedCons||{}; S.claimedCases=S.claimedCases||{};
     cb();
   };
   if(tg?.CloudStorage){ try{ tg.CloudStorage.getItem("state",(e,v)=>{let c=null;try{c=JSON.parse(v)}catch(_){} finish(c)}); return;}catch(e){} }
@@ -230,6 +313,10 @@ const earn = amount => {
   S.coins+=value; S.total+=value; S.allTime+=value;
   return value;
 };
+const earnAurex = amount => {
+  const current=Number(S.aurex), value=Math.max(0,Math.floor(Number(amount)||0));
+  S.aurex=(Number.isFinite(current)?Math.max(0,Math.floor(current)):0)+value;
+};
 let boostUntil=0, boostReadyAt=0;
 const tapBoost = () => Date.now()<boostUntil ? 5 : 1;
 let leaderboardPlayers=[], leaderboardRank=0, leaderboardCount=0;
@@ -237,6 +324,7 @@ let leaderboardPlayers=[], leaderboardRank=0, leaderboardCount=0;
 /* ---- UI ---- */
 function renderTop(){
   $("bal").textContent=fmt(S.coins);
+  $("rareBalance").textContent=fmt(S.aurex);
   $("sTap").textContent=fmt(tapVal());
   $("sPs").textContent=fmt(psVal());
   $("sMul").textContent="×"+Number(mult().toFixed(2));
@@ -288,7 +376,78 @@ function renderLeaderboard(){
     $("lbStatus").textContent=`Игроков: ${leaderboardCount}${leaderboardRank?` · твоё место: #${leaderboardRank}`:""}`;
   }
 }
-function renderAll(){renderTop();renderUp();renderShop();renderMore()}
+const CASES = [
+  {id:"starter",name:"Starter case",tier:"STARTER DROP",cost:3,style:"starter",icon:"📦",description:"Первый шаг в мир редких наград.",prizes:[{weight:70,rarity:"Обычная награда",coins:10000},{weight:25,rarity:"Необычная награда",coins:40000},{weight:5,rarity:"Редкий дроп",aurex:1}]},
+  {id:"bronze",name:"Bronze case",tier:"BRONZE DROP",cost:10,style:"bronze",icon:"🧰",description:"Больше монет и шанс вернуть редкую валюту.",prizes:[{weight:70,rarity:"Обычная награда",coins:80000},{weight:25,rarity:"Необычная награда",coins:250000},{weight:5,rarity:"Редкий дроп",aurex:4}]},
+  {id:"platinum",name:"Platinium case",tier:"PLATINUM DROP",stars:100,style:"platinum",icon:"💎",description:"Премиальный дроп. Оплата один раз, кейс откроется после подтверждения.",prizes:[{weight:70,rarity:"Обычная награда",coins:500000},{weight:25,rarity:"Необычная награда",coins:1500000},{weight:5,rarity:"Легендарный дроп",aurex:15}]}
+];
+function renderCases(){
+  $("caseBalance").textContent=fmt(S.aurex);
+  $("caseList").innerHTML=CASES.map(c=>`<article class="case-card ${c.style}">
+    <div class="case-art" aria-hidden="true">${c.icon}</div>
+    <div class="case-info"><small class="cases-kicker">${c.tier}</small><h3>${c.name}</h3>
+      <p>${c.description}</p><small class="case-prize">До ${fmt(Math.max(...c.prizes.map(p=>p.coins||0)))} монет · редкий шанс на Aurex Coins</small>
+      <div class="case-buy"><small>${c.stars?`⭐ ${c.stars} Telegram Stars`:`✦ ${c.cost} Aurex Coins`}</small><button class="btn ${c.stars?"star":""}" data-case="${c.id}" ${caseOpening||caseAnimationQueue.length>0||(!c.stars&&S.aurex<c.cost)?"disabled":""}>${c.stars?"Купить и открыть":"Открыть"}</button></div>
+    </div></article>`).join("");
+}
+function rollCasePrize(c){
+  let roll=Math.random()*100, prize=c.prizes[c.prizes.length-1];
+  for(const item of c.prizes){roll-=item.weight;if(roll<0){prize=item;break}}
+  return prize;
+}
+function prizeLabel(prize){
+  return prize.coins?`${fmt(prize.coins)} обычных монет`:`${fmt(prize.aurex)} Aurex Coins`;
+}
+let caseOpening=false,caseAnimationQueue=[];
+function animateCaseOpening(c,prize){
+  caseAnimationQueue.push({c,prize});
+  playNextCaseAnimation();
+}
+function playNextCaseAnimation(){
+  if(caseOpening||!caseAnimationQueue.length) return;
+  const {c,prize}=caseAnimationQueue.shift();
+  caseOpening=true;
+  const overlay=$("caseOpening"),dialog=$("caseDialog"),track=$("caseTrack"),close=$("caseClose");
+  $("caseDialogTitle").textContent=c.name;
+  $("caseArtOpen").textContent=c.icon;
+  $("caseOutcome").textContent="Кейс крутится — ловим награду!";
+  close.hidden=true;
+  const winningIndex=22;
+  const slots=Array.from({length:28},()=>c.prizes[Math.floor(Math.random()*c.prizes.length)]);
+  slots[winningIndex]=prize;
+  track.innerHTML=slots.map(item=>`<div class="case-slot ${item.aurex?"rare":""}"><span>${item.aurex?"✦":"🪙"}</span><small>${prizeLabel(item)}</small></div>`).join("");
+  track.style.transition="none";
+  track.style.transform="translateX(0px)";
+  overlay.classList.add("on");
+  overlay.setAttribute("aria-hidden","false");
+  dialog.classList.add("spinning");
+  void track.offsetWidth;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const machineRect=$("caseMachine").getBoundingClientRect();
+    const slotRect=track.children[winningIndex].getBoundingClientRect();
+    const offset=machineRect.left+machineRect.width/2-slotRect.left-slotRect.width/2;
+    track.style.transition="";
+    track.style.transform=`translateX(${offset}px)`;
+  }));
+  setTimeout(()=>{
+    dialog.classList.remove("spinning");
+    $("caseOutcome").innerHTML=`${prize.rarity}<strong>${prize.coins?`+${fmt(prize.coins)} AUREX-монет`:`+${fmt(prize.aurex)} Aurex Coins`}</strong>`;
+    close.hidden=false;caseOpening=false;renderAll();haptic("heavy");
+    if(caseAnimationQueue.length) setTimeout(playNextCaseAnimation,1000);
+  },4700);
+}
+function openCase(id){
+  if(caseOpening||caseAnimationQueue.length) return;
+  const c=CASES.find(item=>item.id===id);
+  if(c?.stars){buyStarsItem("platinum_case",$(`caseList`).querySelector(`[data-case="${id}"]`));return}
+  if(!c||S.aurex<c.cost) return;
+  S.aurex-=c.cost;
+  const prize=rollCasePrize(c);
+  if(prize.coins) earn(prize.coins);
+  if(prize.aurex) earnAurex(prize.aurex);
+  save();renderAll();animateCaseOpening(c,prize);haptic("medium");
+}
+function renderAll(){renderTop();renderUp();renderShop();renderMore();renderCases()}
 
 /* ---- тапы ---- */
 let combo=0, comboT=0;
@@ -329,6 +488,24 @@ function spawnBug(){
   st.appendChild(b); setTimeout(()=>b.remove(),3500);
 }
 setInterval(()=>{ if(Math.random()<.35) spawnBug(); },8000);
+let nextCrystalAt=Date.now()+15000;
+function spawnAurexCrystal(){
+  const st=$("stage");
+  if(!$("t-game").classList.contains("on")||st.querySelector(".aurex-crystal")) return;
+  nextCrystalAt=Date.now()+45000+Math.random()*45000;
+  const crystal=document.createElement("button");
+  crystal.type="button";crystal.className="aurex-crystal";crystal.setAttribute("aria-label","Поймать редкий кристалл Aurex");
+  crystal.innerHTML="<span>✦</span><small>AUREX</small>";
+  crystal.style.left=(Math.random()<.5?6+Math.random()*10:76+Math.random()*8)+"%";
+  crystal.style.top=(12+Math.random()*65)+"%";
+  crystal.onclick=()=>{
+    crystal.remove();earnAurex(1);save();renderAll();haptic("heavy");
+    toast("Кристалл пойман! +1 Aurex Coin");
+  };
+  st.appendChild(crystal);
+  setTimeout(()=>crystal.remove(),6500);
+}
+setInterval(()=>{if(Date.now()>=nextCrystalAt)spawnAurexCrystal()},3000);
 
 /* ---- вкладки ---- */
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
@@ -336,6 +513,13 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on")); $(b.dataset.tab).classList.add("on");
   renderAll(); haptic();
 });
+$("caseList").addEventListener("click",e=>{
+  const id=e.target.dataset?.case;
+  if(id) openCase(id);
+});
+$("caseClose").onclick=()=>{
+  $("caseOpening").classList.remove("on");$("caseOpening").setAttribute("aria-hidden","true");
+};
 
 /* ---- апгрейды ---- */
 $("upList").addEventListener("click",e=>{
@@ -369,27 +553,52 @@ async function api(path,body){
   return result;
 }
 async function syncLeaderboard(){
-  if(!initData){ $("lbStatus").textContent="Открой игру в Telegram, чтобы попасть в общий рейтинг"; return; }
+  if(!initData){ $("lbStatus").textContent=restoreLeaderboard()?"Сохранённый рейтинг на этом устройстве":"Открой игру в Telegram, чтобы попасть в общий рейтинг"; return; }
   try{
     const res=await api("/api/score",{score:S.allTime});
     leaderboardPlayers=res.players||[]; leaderboardRank=res.rank||0; leaderboardCount=res.count||0;
+    try{localStorage.setItem("aurex_leaderboard_"+me.id,JSON.stringify({players:leaderboardPlayers,rank:leaderboardRank,count:leaderboardCount}))}catch(e){}
     renderLeaderboard();
-  }catch(e){ $("lbStatus").textContent="Не удалось загрузить рейтинг · нажми «Обновить»"; }
+  }catch(e){ $("lbStatus").textContent=restoreLeaderboard()?"Офлайн · показан сохранённый рейтинг":"Не удалось загрузить рейтинг · нажми «Обновить»"; }
+}
+function restoreLeaderboard(){
+  try{
+    const cached=JSON.parse(localStorage.getItem("aurex_leaderboard_"+me.id));
+    if(!cached||!Array.isArray(cached.players)) return false;
+    leaderboardPlayers=cached.players.filter(p=>p&&typeof p.name==="string"&&Number.isFinite(Number(p.score))).map(p=>({name:p.name,score:Number(p.score),isMe:!!p.isMe}));
+    leaderboardRank=Math.max(0,Number(cached.rank)||0);leaderboardCount=Math.max(0,Number(cached.count)||leaderboardPlayers.length);
+    if(!leaderboardPlayers.length) return false;
+    renderLeaderboard();return true;
+  }catch(e){return false}
 }
 $("lbRefresh").onclick=syncLeaderboard;
-$("shopList").addEventListener("click",async e=>{
-  const id=e.target.dataset?.buy; if(!id) return;
+async function syncPaidCase(previousCount,attemptsLeft=4){
+  await syncPurchases();
+  if((Number(S.claimedCases.platinum)||0)>previousCount) return;
+  if(attemptsLeft<=0){toast("Платёж принят, но кейс ещё синхронизируется. Он появится после обновления данных.");return}
+  setTimeout(()=>syncPaidCase(previousCount,attemptsLeft-1),1000);
+}
+async function buyStarsItem(id,button){
+  if(!button) return;
   if(!tg || !initData){ toast("Открой игру внутри Telegram, чтобы купить"); return; }
-  e.target.disabled=true;
+  button.disabled=true;
+  const claimedBefore=Number(S.claimedCases.platinum)||0;
   try{
     const res=await api("/api/invoice",{item:id});
     if(!res.link) throw new Error(res.error||"no link");
     tg.openInvoice(res.link, async status=>{
-      if(status==="paid"){ toast("Оплата прошла! Спасибо за поддержку AUREX ❤️"); await syncPurchases(); }
+      if(status==="paid"){
+        toast(id==="platinum_case"?"Оплата прошла! Открываем Platinium case 💎":"Оплата прошла! Спасибо за поддержку AUREX ❤️");
+        if(id==="platinum_case") await syncPaidCase(claimedBefore);
+        else await syncPurchases();
+      }
       else if(status==="failed"){ toast("Оплата не прошла"); }
-      renderShop();
+      renderShop();renderCases();
     });
-  }catch(err){ toast("Магазин временно недоступен"); renderShop(); }
+  }catch(err){ toast("Магазин временно недоступен"); renderShop();renderCases(); }
+}
+$("shopList").addEventListener("click",e=>{
+  const button=e.target.closest("[data-buy]");if(button) buyStarsItem(button.dataset.buy,button);
 });
 async function syncPurchases(){
   if(!initData) return;
@@ -407,9 +616,22 @@ async function syncPurchases(){
         }
       }
     });
-    save(); renderAll();
+    const purchasedCases=Math.max(0,Math.floor(Number(counts.platinum_case)||0));
+    let claimedCases=Math.max(0,Math.floor(Number(S.claimedCases.platinum)||0));
+    const platinum=CASES.find(c=>c.id==="platinum");
+    while(claimedCases<purchasedCases){
+      claimedCases++;S.claimedCases.platinum=claimedCases;
+      const prize=rollCasePrize(platinum);
+      if(prize.coins) earn(prize.coins);
+      if(prize.aurex) earnAurex(prize.aurex);
+      animateCaseOpening(platinum,prize);
+    }
+    save();renderAll();
   }catch(e){}
 }
+$("caseList").addEventListener("click",e=>{
+  const button=e.target.closest("[data-case]");if(button) openCase(button.dataset.case);
+});
 
 /* ---- игровой цикл ---- */
 let last=performance.now();

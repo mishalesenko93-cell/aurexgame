@@ -31,6 +31,7 @@ ITEMS = {
     "pack":  {"title": "Пакет 100 000",      "desc": "Мгновенно +100 000 монет",       "stars": 25},
     "don10": {"title": "Поддержать AUREX",   "desc": "Спасибо за развитие! +10 000",   "stars": 10},
     "don50": {"title": "Большая поддержка",  "desc": "Респект от AurexCompany! +75 000","stars": 50},
+    "platinum_case": {"title": "Platinium case", "desc": "Премиальный кейс AUREX", "stars": 100},
 }
 
 lock = threading.Lock()
