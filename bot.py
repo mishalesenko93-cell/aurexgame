@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://mishalesenko93-cell.github.io/aurexgame/")
+WEBAPP_URL += ("&" if "?" in WEBAPP_URL else "?") + "v=20261114-case-opening"
 PORT = int(os.environ.get("PORT", "8080"))
 ALLOW_ORIGIN = os.environ.get("ALLOW_ORIGIN", "https://mishalesenko93-cell.github.io")
 CHANNEL = "https://t.me/AurexCompany"
