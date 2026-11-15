@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://mishalesenko93-cell.github.io/aurexgame/")
-WEBAPP_URL += ("&" if "?" in WEBAPP_URL else "?") + "v=20261114-winter-quests"
+WEBAPP_URL += ("&" if "?" in WEBAPP_URL else "?") + "v=20261115-referrals-players"
 PORT = int(os.environ.get("PORT", "8080"))
 ALLOW_ORIGIN = os.environ.get("ALLOW_ORIGIN", "https://mishalesenko93-cell.github.io")
 CHANNEL = "https://t.me/AurexCompany"
@@ -24,6 +24,8 @@ os.makedirs(DATA_DIR, exist_ok=True)
 DB_FILE = os.path.join(DATA_DIR, "purchases.json")
 SCORES_FILE = os.path.join(DATA_DIR, "leaderboard.json")
 WINTER_FILE = os.path.join(DATA_DIR, "winter_2026.json")
+REFERRALS_FILE = os.path.join(DATA_DIR, "referrals.json")
+PLAYERS_FILE = os.path.join(DATA_DIR, "players.json")
 API = f"https://api.telegram.org/bot{BOT_TOKEN}/"
 
 # Цены в Telegram Stars (XTR). Должны совпадать с index.html
@@ -46,6 +48,8 @@ WINTER_END = datetime(2027, 2, 28, 22, 0, tzinfo=timezone.utc).timestamp()
 ARENA_DURATION = 30
 ARENA_HIT_COOLDOWN = 0.3
 DAILY_BP_XP_CAP = 250
+REFERRAL_REWARD_COINS = 5000
+REFERRAL_TAP_GOAL = 100
 WINTER_DAILY_QUEST_POOL = [
     {"key": "first_round", "title": "Первый снежок", "description": "Заверши раунд в Snowball Arena", "counter": "rounds", "goal": 1, "xp": 35, "coins": 5000},
     {"key": "sharp_15", "title": "Меткий бросок", "description": "Попади по 15 мишеням", "counter": "hits", "goal": 15, "xp": 40, "coins": 7500},
@@ -344,6 +348,24 @@ def score_upsert(user, score):
     return {"players": players, "rank": rank, "count": len(players)}
 
 
+def player_count_record(user_id):
+    uid = str(user_id)
+    if not uid.isdigit():
+        raise ValueError("Invalid Telegram user ID")
+    with lock:
+        try:
+            with open(PLAYERS_FILE, "r", encoding="utf-8") as file:
+                players = json.load(file)
+        except FileNotFoundError:
+            players = {}
+        if not isinstance(players, dict):
+            raise RuntimeError("Invalid player count data")
+        if uid not in players:
+            players[uid] = int(time.time())
+            json_save(PLAYERS_FILE, players)
+        return len(players)
+
+
 # ---------- Telegram API ----------
 def tg(method, **params):
     req = urllib.request.Request(
@@ -353,6 +375,134 @@ def tg(method, **params):
     )
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.loads(r.read())
+
+
+bot_username_cache = None
+bot_username_lock = threading.Lock()
+
+
+def bot_username():
+    global bot_username_cache
+    with bot_username_lock:
+        if bot_username_cache:
+            return bot_username_cache
+        response = tg("getMe")
+        username = response.get("result", {}).get("username") if response.get("ok") else None
+        if not isinstance(username, str) or not username:
+            raise RuntimeError("Telegram did not return the bot username")
+        bot_username_cache = username
+        return username
+
+
+def referrals_load():
+    try:
+        with open(REFERRALS_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        return {"invitees": {}, "receipts": {}}
+    if (
+        not isinstance(data, dict)
+        or not isinstance(data.get("invitees"), dict)
+        or not isinstance(data.get("receipts"), dict)
+    ):
+        raise RuntimeError("Invalid referral data")
+    return data
+
+
+def referral_register(inviter_id, invitee_id, now=None):
+    inviter_id, invitee_id = str(inviter_id), str(invitee_id)
+    if not inviter_id.isdigit() or not invitee_id.isdigit() or inviter_id == invitee_id:
+        return False
+    with lock:
+        data = referrals_load()
+        if invitee_id in data["invitees"] or invitee_id in scores_load():
+            return False
+        data["invitees"][invitee_id] = {
+            "inviterId": inviter_id,
+            "createdAt": int(time.time() if now is None else now),
+            "activated": False,
+        }
+        json_save(REFERRALS_FILE, data)
+    return True
+
+
+def referral_activate(invitee_id, taps):
+    invitee_id = str(invitee_id)
+    if isinstance(taps, bool) or not isinstance(taps, int) or taps < REFERRAL_TAP_GOAL:
+        return False
+    with lock:
+        data = referrals_load()
+        invite = data["invitees"].get(invitee_id)
+        if not invite or invite.get("activated"):
+            return False
+        invite["activated"] = True
+        inviter_id = invite["inviterId"]
+        receipt_id = uuid.uuid4().hex
+        data["receipts"].setdefault(inviter_id, {})[receipt_id] = {
+            "id": receipt_id,
+            "amount": REFERRAL_REWARD_COINS,
+            "inviteeId": invitee_id,
+            "acknowledged": False,
+        }
+        json_save(REFERRALS_FILE, data)
+    return True
+
+
+def referral_state(user):
+    uid = str(user["id"])
+    username = bot_username()
+    with lock:
+        data = referrals_load()
+        invitees = [
+            item for item in data["invitees"].values()
+            if item.get("inviterId") == uid
+        ]
+        pending_receipts = [
+            receipt for receipt in data["receipts"].get(uid, {}).values()
+            if not receipt.get("acknowledged")
+        ]
+        own_invite = data["invitees"].get(uid)
+    return {
+        "inviteLink": f"https://t.me/{username}?start=ref_{uid}",
+        "invited": len(invitees),
+        "activated": sum(1 for item in invitees if item.get("activated")),
+        "rewardCoins": REFERRAL_REWARD_COINS,
+        "tapGoal": REFERRAL_TAP_GOAL,
+        "myReferral": (
+            {"activated": bool(own_invite.get("activated"))}
+            if own_invite else None
+        ),
+        "receipts": pending_receipts,
+    }
+
+
+def referral_ack(user_id, receipt_id):
+    if not isinstance(receipt_id, str) or not receipt_id:
+        return False
+    uid = str(user_id)
+    with lock:
+        data = referrals_load()
+        receipt = data["receipts"].get(uid, {}).get(receipt_id)
+        if not receipt:
+            return False
+        receipt["acknowledged"] = True
+        json_save(REFERRALS_FILE, data)
+    return True
+
+
+def referral_api(path, payload, user):
+    if path == "/api/referrals/state":
+        return 200, referral_state(user)
+    if path == "/api/referrals/activate":
+        taps = payload.get("taps")
+        if isinstance(taps, bool) or not isinstance(taps, int) or not 0 <= taps <= 10_000_000:
+            return 400, {"error": "invalid_taps"}
+        return 200, {"activated": referral_activate(user["id"], taps)}
+    if path == "/api/referrals/receipt/ack":
+        if not referral_ack(user["id"], payload.get("receiptId")):
+            return 404, {"error": "receipt_not_found"}
+        return 200, {"ok": True}
+    return 404, {"error": "not_found"}
 
 
 def validate_init_data(init_data, max_age=86400):
@@ -657,6 +807,21 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(401, {"error": "bad initData"})
         uid = user["id"]
 
+        if self.path.startswith("/api/referrals/"):
+            try:
+                status, result = referral_api(self.path, data, user)
+                return self._send(status, result)
+            except (OSError, RuntimeError, TypeError, ValueError) as error:
+                print("Referral storage/API error:", error)
+                return self._send(500, {"error": "referral_service_error"})
+
+        if self.path == "/api/players/open":
+            try:
+                return self._send(200, {"count": player_count_record(uid)})
+            except (OSError, RuntimeError, TypeError, ValueError) as error:
+                print("Player count storage error:", error)
+                return self._send(500, {"error": "player_count_unavailable"})
+
         if self.path.startswith("/api/winter/"):
             try:
                 status, result = winter_api(self.path, data, user)
@@ -761,6 +926,19 @@ def handle_update(u):
 
     text = (msg.get("text") or "").strip()
     if text.startswith("/start"):
+        start_parts = text.split(maxsplit=1)
+        payload = start_parts[1].strip() if len(start_parts) > 1 else ""
+        if (
+            (msg.get("chat") or {}).get("type") == "private"
+            and payload.startswith("ref_")
+            and payload[4:].isdigit()
+        ):
+            invited_user_id = (msg.get("from") or {}).get("id")
+            if invited_user_id is not None:
+                try:
+                    referral_register(payload[4:], invited_user_id)
+                except (OSError, RuntimeError, ValueError) as error:
+                    print("Referral registration error:", error)
         tg("sendMessage", chat_id=chat_id,
            text="🪙 *AUREX Miner* — майни монеты, прокачивай IT-империю и лови багов!\n\n"
                 "Игра от AUREX COMPANY. Жми кнопку ниже 👇",
