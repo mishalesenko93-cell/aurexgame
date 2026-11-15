@@ -495,7 +495,7 @@ const earnAurex = amount => {
 };
 let boostUntil=0, boostReadyAt=0;
 const tapBoost = () => (Date.now()<boostUntil ? 5 : 1) * (winterEnabled&&winterStateData&&winterNowSeconds()<winterStateData.boosterUntil ? 2 : 1);
-let leaderboardPlayers=[], leaderboardRank=0, leaderboardCount=0;
+let leaderboardPlayers=[], leaderboardRank=0, leaderboardCount=0, leaderboardLoaded=false;
 
 /* ---- UI ---- */
 function renderTop(){
@@ -548,9 +548,9 @@ function renderLeaderboard(){
     const score=document.createElement("b"); score.textContent=fmt(player.score);
     row.append(label,score); list.appendChild(row);
   });
-  if(leaderboardCount){
-    $("lbStatus").textContent=`Игроков: ${leaderboardCount}${leaderboardRank?` · твоё место: #${leaderboardRank}`:""}`;
-  }
+  if(leaderboardLoaded) $("lbStatus").textContent=leaderboardCount
+    ? `Игроков: ${leaderboardCount}${leaderboardRank?` · твоё место: #${leaderboardRank}`:""}`
+    : "Пока нет игроков, которые тапали";
 }
 const CASES = [
   {id:"starter",name:"Starter case",tier:"STARTER DROP",cost:3,style:"starter",icon:"📦",description:"Первый шаг в мир редких наград.",prizes:[{weight:70,rarity:"Обычная награда",coins:10000},{weight:25,rarity:"Необычная награда",coins:40000},{weight:5,rarity:"Редкий дроп",aurex:1}]},
@@ -664,6 +664,7 @@ $("coin").addEventListener("pointerdown",e=>{
   animateCoinTap(e,crit);
   if(crit) v*=5;
   earn(v); S.taps++;
+  if(S.taps===1) syncLeaderboard();
   if(S.taps===REFERRAL_TAP_GOAL)syncReferrals();
   combo++; clearTimeout(comboT); comboT=setTimeout(()=>{combo=0;$("combo").textContent=""},900);
   if(combo>=10){ $("combo").textContent=`🔥 Комбо ×${combo}`; if(combo%25===0){const b=tapVal()*combo; earn(b);toast(`Бонус за комбо +${fmt(b)}`)} }
@@ -1088,8 +1089,8 @@ async function syncWinterAfterPurchase(attempts=6){
 async function syncLeaderboard(){
   if(!initData){ $("lbStatus").textContent=restoreLeaderboard()?"Сохранённый рейтинг на этом устройстве":"Открой игру в Telegram, чтобы попасть в общий рейтинг"; return; }
   try{
-    const res=await api("/api/score",{score:S.allTime});
-    leaderboardPlayers=res.players||[]; leaderboardRank=res.rank||0; leaderboardCount=res.count||0;
+    const res=await api("/api/score",{score:S.allTime,taps:S.taps});
+    leaderboardPlayers=res.players||[]; leaderboardRank=res.rank||0; leaderboardCount=res.count||0; leaderboardLoaded=true;
     try{localStorage.setItem("aurex_leaderboard_"+me.id,JSON.stringify({players:leaderboardPlayers,rank:leaderboardRank,count:leaderboardCount}))}catch(e){}
     renderLeaderboard();
     if(referralStateData?.myReferral&&!referralStateData.myReferral.activated)await activateReferralIfEligible(true);
@@ -1100,7 +1101,7 @@ function restoreLeaderboard(){
     const cached=JSON.parse(localStorage.getItem("aurex_leaderboard_"+me.id));
     if(!cached||!Array.isArray(cached.players)) return false;
     leaderboardPlayers=cached.players.filter(p=>p&&typeof p.name==="string"&&Number.isFinite(Number(p.score))).map(p=>({name:p.name,score:Number(p.score),isMe:!!p.isMe}));
-    leaderboardRank=Math.max(0,Number(cached.rank)||0);leaderboardCount=Math.max(0,Number(cached.count)||leaderboardPlayers.length);
+    leaderboardRank=Math.max(0,Number(cached.rank)||0);leaderboardCount=Math.max(0,Number(cached.count)||leaderboardPlayers.length);leaderboardLoaded=true;
     if(!leaderboardPlayers.length) return false;
     renderLeaderboard();return true;
   }catch(e){return false}

@@ -322,25 +322,42 @@ def scores_load():
     try:
         with open(SCORES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data if isinstance(data, dict) else {}
-    except (OSError, ValueError):
+    except FileNotFoundError:
         return {}
+    except (OSError, ValueError) as error:
+        raise RuntimeError("Could not read leaderboard data") from error
+    if not isinstance(data, dict):
+        raise RuntimeError("Invalid leaderboard data")
+    return data
 
 
-def score_upsert(user, score):
+def score_upsert(user, score, taps=0):
+    if isinstance(taps, bool) or not isinstance(taps, int) or not 0 <= taps <= 10**15:
+        raise ValueError("Invalid tap count")
     uid = str(user["id"])
     name = " ".join(part for part in (user.get("first_name"), user.get("last_name")) if part).strip()
     name = name or user.get("username") or "Игрок"
     with lock:
         scores = scores_load()
+        for item in scores.values():
+            if not isinstance(item, dict):
+                raise RuntimeError("Invalid leaderboard player")
+            if "tapped" not in item:
+                item["tapped"] = float(item.get("score", 0)) > 0
         previous = scores.get(uid, {})
+        tapped = previous.get("tapped", False) or taps > 0
         scores[uid] = {
             "name": name[:64],
             "score": max(float(previous.get("score", 0)), score),
+            "tapped": tapped,
         }
         json_save(SCORES_FILE, scores)
-        ordered = sorted(scores.items(), key=lambda entry: entry[1].get("score", 0), reverse=True)
-        rank = next(i for i, (player_id, _) in enumerate(ordered, 1) if player_id == uid)
+        ordered = sorted(
+            ((player_id, item) for player_id, item in scores.items() if item.get("tapped")),
+            key=lambda entry: entry[1].get("score", 0),
+            reverse=True,
+        )
+        rank = next((i for i, (player_id, _) in enumerate(ordered, 1) if player_id == uid), 0)
         players = [
             {"name": item.get("name", "Игрок"), "score": item.get("score", 0), "isMe": player_id == uid}
             for player_id, item in ordered
@@ -863,10 +880,21 @@ class Handler(BaseHTTPRequestHandler):
             score = data.get("score")
             if isinstance(score, bool) or not isinstance(score, (int, float)) or not 0 <= score <= 1e15 or not math.isfinite(score):
                 return self._send(400, {"error": "invalid score"})
-            return self._send(200, score_upsert(user, float(score)))
+            taps = data.get("taps", 0)
+            if isinstance(taps, bool) or not isinstance(taps, int) or not 0 <= taps <= 10**15:
+                return self._send(400, {"error": "invalid taps"})
+            try:
+                return self._send(200, score_upsert(user, float(score), taps))
+            except (OSError, RuntimeError, TypeError, ValueError) as error:
+                print("Leaderboard storage error:", error)
+                return self._send(500, {"error": "leaderboard_unavailable"})
 
         if self.path == "/api/leaderboard":
-            return self._send(200, score_upsert(user, 0))
+            try:
+                return self._send(200, score_upsert(user, 0))
+            except (OSError, RuntimeError, TypeError, ValueError) as error:
+                print("Leaderboard storage error:", error)
+                return self._send(500, {"error": "leaderboard_unavailable"})
 
         self._send(404, {"error": "not found"})
 
