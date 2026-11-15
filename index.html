@@ -215,9 +215,19 @@ body.winter nav button{font-size:10px}
 .winter-offer-dialog .offer-price{margin:14px 0;color:#ffe399;font-size:18px;font-weight:900}
 .winter-offer-dialog .btn{width:100%;margin-top:8px}
 .winter-offer-dialog .offer-later{background:#26334a;color:#dcecff}
+.starter-offer{position:fixed;inset:0;z-index:115;display:none;align-items:center;justify-content:center;padding:18px;background:#050915ef;backdrop-filter:blur(12px)}
+.starter-offer.on{display:flex}
+.starter-offer-dialog{position:relative;width:min(100%,420px);padding:24px 20px;border:1px solid #ffc958aa;border-radius:24px;background:radial-gradient(circle at 50% 0%,#ffb8002e,transparent 42%),linear-gradient(145deg,#30253a,#101322);box-shadow:0 25px 90px #000b,0 0 45px #ffc34222;text-align:center;animation:caseDialogIn .35s cubic-bezier(.2,.8,.2,1) both}
+.starter-offer-dialog .offer-icon{font-size:42px}
+.starter-offer-dialog h2{margin:7px 0}
+.starter-offer-dialog p{color:#c5c6d9;font-size:13px;line-height:1.5}
+.starter-offer-rewards{display:grid;gap:7px;margin:14px 0;padding:12px;border:1px solid #ffffff18;border-radius:14px;background:#ffffff08;text-align:left;color:#f5e8c1;font-size:13px}
+.starter-offer-dialog .offer-price{margin:14px 0;color:#ffe399;font-size:20px;font-weight:900}
+.starter-offer-dialog .btn{width:100%;margin-top:8px}
+.starter-offer-dialog .offer-later{background:#26334a;color:#dcecff}
 .bp-empty{padding:12px;color:#9fb0c9;font-size:12px;text-align:center}
 @media(max-width:370px){nav button{font-size:9px}.winter-tab{padding-left:11px;padding-right:11px}.bp-tier{grid-template-columns:25px 1fr 1fr;gap:4px;padding:5px}.bp-reward{padding:6px 5px}}
-@media(prefers-reduced-motion:reduce){.arena-target,.winter-offer-dialog,.winter-reward-pop.on{animation:none;opacity:1;transform:translateX(-50%)}.bp-progress i{transition:none}}
+@media(prefers-reduced-motion:reduce){.arena-target,.winter-offer-dialog,.starter-offer-dialog,.winter-reward-pop.on{animation:none}.winter-reward-pop.on{opacity:1;transform:translate(-50%,0)}.bp-progress i{transition:none}}
 </style>
 </head>
 <body>
@@ -375,6 +385,22 @@ body.winter nav button{font-size:10px}
   <button class="btn offer-later" id="winterOfferLater">ПОЗЖЕ</button>
  </div>
 </div>
+<div class="starter-offer" id="starterPackOffer" aria-hidden="true">
+ <div class="starter-offer-dialog" role="dialog" aria-modal="true" aria-labelledby="starterPackTitle">
+  <div class="offer-icon" aria-hidden="true">🎁</div>
+  <small class="cases-kicker">ТОЛЬКО ДЛЯ НОВИЧКОВ</small>
+  <h2 id="starterPackTitle">AUREX Starter Pack</h2>
+  <p>Начни майнинг мощнее — набор доступен новым игрокам один раз.</p>
+  <div class="starter-offer-rewards">
+   <span>🚀 Turbo ×2 навсегда</span>
+   <span>🛰️ Авто-майнер навсегда</span>
+   <span>🪙 +100 000 AUREX-монет</span>
+  </div>
+  <div class="offer-price">99 ⭐</div>
+  <button class="btn star" id="starterPackBuy">КУПИТЬ НАБОР</button>
+  <button class="btn offer-later" id="starterPackLater">ПОЗЖЕ</button>
+ </div>
+</div>
 
 <script>
 /* ============ НАСТРОЙКИ ============ */
@@ -390,6 +416,7 @@ const initData = tg?.initData || "";
 const me = tg?.initDataUnsafe?.user || {id:0, first_name:"Игрок"};
 const $ = id => document.getElementById(id);
 let winterStateData=null,winterEnabled=false,winterOfferShown=false,winterPurchasePending=false,winterRewardBusy=false,winterRewardQueue=[];
+let starterPackEligible=false,starterPackOfferShown=false,starterPackPurchasePending=false;
 let winterServerTime=0,winterSyncPerf=0,winterArenaRun=null,winterArenaTimer=null,winterTargetTimer=null;
 let winterSoundEnabled=false;try{winterSoundEnabled=localStorage.getItem("aurex_winter_sound")==="on"}catch(e){}
 function enableWinterSnow(){
@@ -430,6 +457,7 @@ const UPG = [
  {id:"crit", ic:"🎯", name:"Критический тап", desc:"+3% шанс ×5 (макс 30%)",base:800, k:1.8,  type:"crit", v:3, max:10},
 ];
 const SHOP = [
+ {id:"starter_pack",ic:"🎁",name:"AUREX Starter Pack",desc:"Turbo ×2 навсегда + авто-майнер + 100 000 монет · только новичкам",stars:99,newcomerOnly:true},
  {id:"turbo", ic:"🚀", name:"AUREX Turbo ×2", desc:"Все доходы ×2 навсегда", stars:49, perm:true},
  {id:"auto",  ic:"🛰️", name:"Авто-майнер",    desc:"+250 монет/сек навсегда", stars:99, perm:true},
  {id:"skin",  ic:"🌌", name:"Неоновая монета",desc:"Эксклюзивный скин",       stars:75, perm:true},
@@ -522,10 +550,10 @@ function renderUp(){
   }).join("");
 }
 function renderShop(){
-  $("shopList").innerHTML = SHOP.map(s=>{
+  $("shopList").innerHTML = SHOP.filter(s=>!s.newcomerOnly||starterPackEligible).map(s=>{
     const owned = s.perm && S.perm[s.id];
     return `<div class="item"><div class="ic">${s.ic}</div><div class="t"><b>${s.name}</b><small>${s.desc}</small></div>
-    ${owned?'<span class="owned">✓ Куплено</span>':`<button class="btn star" data-buy="${s.id}">⭐ ${s.stars}</button>`}</div>`;
+    ${owned?'<span class="owned">✓ Куплено</span>':`<button class="btn star" data-buy="${s.id}" ${s.id==="starter_pack"&&starterPackPurchasePending?"disabled":""}>⭐ ${s.stars}</button>`}</div>`;
   }).join("");
 }
 function renderMore(){
@@ -762,12 +790,26 @@ async function api(path,body){
 }
 async function syncPlayerCount(){
   const label=$("playerCount");
-  if(!initData){label.textContent="Участников: открой в Telegram";return}
+  if(!initData){starterPackEligible=false;label.textContent="Участников: открой в Telegram";renderShop();return}
   try{
     const result=await api("/api/players/open",{});
     if(Number.isSafeInteger(result.count)&&result.count>=0)label.textContent=`Участников: ${fmt(result.count)}`;
     else label.textContent="Участников: —";
+    starterPackEligible=result.starterPackEligible===true;
+    renderShop();
+    if(result.starterPackOfferAvailable===true)showStarterPackOffer();
   }catch(error){label.textContent="Участников: —"}
+}
+function showStarterPackOffer(){
+  if(!starterPackEligible||starterPackOfferShown)return;
+  starterPackOfferShown=true;
+  $("starterPackOffer").classList.add("on");
+  $("starterPackOffer").setAttribute("aria-hidden","false");
+  api("/api/starter-pack/seen",{}).catch(error=>console.error("Could not save Starter Pack offer state:",error));
+}
+function hideStarterPackOffer(){
+  $("starterPackOffer").classList.remove("on");
+  $("starterPackOffer").setAttribute("aria-hidden","true");
 }
 let referralStateData=null,referralActivationBusy=false;
 const referralReceiptProcessing=new Set(),referralReceiptNeedsSave=new Set();
@@ -1115,9 +1157,12 @@ async function syncPaidCase(previousCount,attemptsLeft=4){
 }
 async function buyStarsItem(id,button){
   if(!button) return;
+  if(id==="starter_pack"&&starterPackPurchasePending) return;
   if(!tg || !initData){ toast("Открой игру внутри Telegram, чтобы купить"); return; }
   button.disabled=true;
+  if(id==="starter_pack")starterPackPurchasePending=true;
   const claimedBefore=Number(S.claimedCases.platinum)||0;
+  const starterPackClaimedBefore=Number(S.claimedCons.starter_pack)||0;
   try{
     const res=await api("/api/invoice",{item:id});
     if(!res.link) throw new Error(res.error||"no link");
@@ -1125,23 +1170,33 @@ async function buyStarsItem(id,button){
       if(status==="paid"){
         if(id==="winter_pass"){toast("Оплата прошла! Проверяем Premium Battle Pass ⭐");await syncWinterAfterPurchase()}
         else if(id==="platinum_case"){toast("Оплата прошла! Открываем Platinium case 💎");await syncPaidCase(claimedBefore)}
+        else if(id==="starter_pack"){toast("Оплата прошла! Начисляем Starter Pack 🎁");await syncStarterPackAfterPurchase(starterPackClaimedBefore)}
         else await syncPurchases();
       }
       else if(status==="failed"){ toast("Оплата не прошла"); }
-      button.disabled=id==="winter_pass"&&winterPurchasePending;renderShop();renderCases();renderWinter();
+      if(id==="starter_pack"&&status!=="paid")starterPackPurchasePending=false;
+      button.disabled=(id==="winter_pass"&&winterPurchasePending)||(id==="starter_pack"&&starterPackPurchasePending);renderShop();renderCases();renderWinter();
     });
-  }catch(err){ button.disabled=false;toast("Магазин временно недоступен"); renderShop();renderCases();renderWinter(); }
+  }catch(err){ if(id==="starter_pack")starterPackPurchasePending=false;button.disabled=false;toast("Магазин временно недоступен"); renderShop();renderCases();renderWinter(); }
 }
 $("shopList").addEventListener("click",e=>{
   const button=e.target.closest("[data-buy]");if(button) buyStarsItem(button.dataset.buy,button);
 });
 async function syncPurchases(){
-  if(!initData) return;
+  if(!initData) return false;
   try{
     const res=await api("/api/purchases",{});
     const counts=res.items||{};
     SHOP.forEach(s=>{
       const n=counts[s.id]||0;
+      if(s.id==="starter_pack"){
+        const claimed=S.claimedCons.starter_pack||0;
+        if(n>0){S.perm.turbo=true;S.perm.auto=true;starterPackEligible=false}
+        if(n>claimed){
+          earn(100000*(n-claimed));S.claimedCons.starter_pack=n;
+        }
+        return;
+      }
       if(s.perm){ if(n>0) S.perm[s.id]=true; }
       else{
         const claimed=S.claimedCons[s.id]||0;
@@ -1161,9 +1216,21 @@ async function syncPurchases(){
       if(prize.aurex) earnAurex(prize.aurex);
       animateCaseOpening(platinum,prize);
     }
-    save();renderAll();
-  }catch(e){}
+    save();renderAll();return true;
+  }catch(error){console.error("Purchase sync failed:",error);return false}
 }
+async function syncStarterPackAfterPurchase(previousCount,attempts=6){
+  await syncPurchases();
+  if((Number(S.claimedCons.starter_pack)||0)>previousCount){
+    starterPackEligible=false;starterPackPurchasePending=false;hideStarterPackOffer();renderShop();renderTop();
+    toast("Набор начислен: Turbo ×2, авто-майнер и 100 000 монет");
+    return;
+  }
+  if(attempts>1)setTimeout(()=>syncStarterPackAfterPurchase(previousCount,attempts-1),1000);
+  else toast("Платёж принят, набор ещё синхронизируется. Открой игру позже.");
+}
+$("starterPackBuy").onclick=()=>buyStarsItem("starter_pack",$("starterPackBuy"));
+$("starterPackLater").onclick=hideStarterPackOffer;
 $("caseList").addEventListener("click",e=>{
   const button=e.target.closest("[data-case]");if(button) openCase(button.dataset.case);
 });
