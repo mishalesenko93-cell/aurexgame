@@ -16,7 +16,8 @@ body.winter #snow{display:block}
 @keyframes snowfall{to{transform:translate3d(35px,110vh,0) rotate(360deg)}}
 #app{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
-.brand{font-weight:800;letter-spacing:1px;font-size:15px}
+.brand{font-weight:800;letter-spacing:0;font-size:12px}
+.brand small{display:block;margin-top:3px;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:0}
 .brand b{color:var(--accent)}
 .lvl{font-size:12px;color:var(--muted);text-align:right}
 .lvl .bar{width:90px;height:6px;background:var(--card2);border-radius:4px;margin-top:4px;overflow:hidden}
@@ -223,7 +224,7 @@ body.winter nav button{font-size:10px}
 <div id="snow" aria-hidden="true"></div>
 <div id="app">
  <header>
-  <div class="brand">AUREX<b>COMPANY</b> · MINER</div>
+  <div class="brand">AUREX<b>COMPANY</b> · MINER<small id="playerCount">Участников: —</small></div>
   <div class="lvl"><div id="lvlName">Уровень 1</div><div class="bar"><i id="lvlBar"></i></div></div>
  </header>
  <main>
@@ -335,7 +336,7 @@ body.winter nav button{font-size:10px}
     <button class="btn" id="chClaim" style="margin-left:6px">🎁 Забрать 5 000</button>
    </div>
    <div class="item"><div class="ic">📅</div><div class="t"><b>Ежедневный бонус</b><small id="dailyInfo">Серия: 0 дн.</small></div><button class="btn" id="dailyBtn">Забрать</button></div>
-   <div class="item"><div class="ic">👥</div><div class="t"><b>Позвать друга</b><small>Отправь ссылку на игру, пусть тоже майнит</small></div><button class="btn alt" id="shareBtn">Отправить</button></div>
+   <div class="item"><div class="ic">👥</div><div class="t"><b>Позвать друга</b><small id="referralInfo">+5 000 монет за друга после 100 тапов · приглашено 0</small></div><button class="btn alt" id="shareBtn">Отправить</button></div>
    <div class="lb-head"><h2>🏆 Рейтинг игроков</h2><button class="btn alt" id="lbRefresh">Обновить</button></div>
    <div class="lb-status" id="lbStatus">Загрузка рейтинга…</div>
    <div id="lb"></div>
@@ -379,7 +380,8 @@ body.winter nav button{font-size:10px}
 /* ============ НАСТРОЙКИ ============ */
 const API_URL = "https://aurexgame.onrender.com"; // адрес, где запущен bot.py (HTTPS)
 const CHANNEL = "https://t.me/AurexCompany";
-const BOT_LINK = "https://t.me/YOUR_BOT_USERNAME/app"; // ссылка на мини-апп для приглашений
+const REFERRAL_REWARD_COINS = 5000;
+const REFERRAL_TAP_GOAL = 100;
 /* ==================================== */
 
 const tg = window.Telegram?.WebApp;
@@ -438,7 +440,7 @@ const SHOP = [
 const LEVELS = [0,500,3000,15000,80000,400000,2e6,1e7,5e7,3e8];
 const LVL_NAMES = ["Новичок","Стажёр","Джуниор","Мидл","Сеньор","Тимлид","CTO","Основатель","Легенда","AUREX-бог"];
 
-let S = {coins:0,aurex:0,total:0,allTime:0,rebirths:0,taps:0,lv:{},perm:{},claimedCons:{},claimedCases:{},winterReceipts:[],channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
+let S = {coins:0,aurex:0,total:0,allTime:0,rebirths:0,taps:0,lv:{},perm:{},claimedCons:{},claimedCases:{},winterReceipts:[],referralReceipts:[],channel:false,lastDaily:0,streak:0,lastSeen:Date.now()};
 const fmt = n => { n=Math.floor(n); if(n<1e3)return String(n); const u=["","K","M","B","T"]; let i=0,x=n; while(x>=1000&&i<4){x/=1000;i++} return (x<10?x.toFixed(2):x<100?x.toFixed(1):Math.floor(x))+u[i]; };
 const toast = (m)=>{const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("on"),2200)};
 const haptic = (t="light")=>{try{tg?.HapticFeedback?.impactOccurred(t)}catch(e){}};
@@ -462,6 +464,7 @@ function load(cb){
     S.rebirths=Math.max(0,Math.floor(Number(S.rebirths)||0));
     S.lv=S.lv||{}; S.perm=S.perm||{}; S.claimedCons=S.claimedCons||{}; S.claimedCases=S.claimedCases||{};
     S.winterReceipts=Array.isArray(S.winterReceipts)?S.winterReceipts:[];
+    S.referralReceipts=Array.isArray(S.referralReceipts)?S.referralReceipts:[];
     cb();
   };
   if(tg?.CloudStorage){ try{ tg.CloudStorage.getItem("state",(e,v)=>{let c=null;try{c=JSON.parse(v)}catch(_){} finish(c)}); return;}catch(e){} }
@@ -661,6 +664,7 @@ $("coin").addEventListener("pointerdown",e=>{
   animateCoinTap(e,crit);
   if(crit) v*=5;
   earn(v); S.taps++;
+  if(S.taps===REFERRAL_TAP_GOAL)syncReferrals();
   combo++; clearTimeout(comboT); comboT=setTimeout(()=>{combo=0;$("combo").textContent=""},900);
   if(combo>=10){ $("combo").textContent=`🔥 Комбо ×${combo}`; if(combo%25===0){const b=tapVal()*combo; earn(b);toast(`Бонус за комбо +${fmt(b)}`)} }
   const r=$("stage").getBoundingClientRect();
@@ -745,9 +749,7 @@ $("dailyBtn").onclick=()=>{
   const r=1000*S.streak*mult(); earn(r); toast(`Бонус за ${S.streak}-й день: +${fmt(r)} 🪙`); save(); renderAll();
 };
 $("shareBtn").onclick=()=>{
-  const text="Майни AUREX-монеты в Telegram! 🪙 Канал: AurexCompany";
-  const url="https://t.me/share/url?url="+encodeURIComponent(BOT_LINK)+"&text="+encodeURIComponent(text);
-  tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url,"_blank");
+  shareReferralLink();
 };
 
 /* ---- магазин за Stars ---- */
@@ -756,6 +758,70 @@ async function api(path,body){
   const result=await r.json();
   if(!r.ok) throw new Error(result.error||`API error ${r.status}`);
   return result;
+}
+async function syncPlayerCount(){
+  const label=$("playerCount");
+  if(!initData){label.textContent="Участников: открой в Telegram";return}
+  try{
+    const result=await api("/api/players/open",{});
+    if(Number.isSafeInteger(result.count)&&result.count>=0)label.textContent=`Участников: ${fmt(result.count)}`;
+    else label.textContent="Участников: —";
+  }catch(error){label.textContent="Участников: —"}
+}
+let referralStateData=null,referralActivationBusy=false;
+const referralReceiptProcessing=new Set(),referralReceiptNeedsSave=new Set();
+function processReferralReceipts(receipts){
+  if(!Array.isArray(receipts))return;
+  receipts.forEach(receipt=>{
+    if(!receipt||typeof receipt.id!=="string"||referralReceiptProcessing.has(receipt.id))return;
+    if(receipt.amount!==REFERRAL_REWARD_COINS)return;
+    referralReceiptProcessing.add(receipt.id);
+    if(!S.referralReceipts.includes(receipt.id)){
+      earn(receipt.amount);S.referralReceipts.push(receipt.id);
+      if(S.referralReceipts.length>512)S.referralReceipts=S.referralReceipts.slice(-512);
+      if(!save())referralReceiptNeedsSave.add(receipt.id);
+      renderTop();toast(`+${fmt(receipt.amount)} монет за друга`);
+    }
+    const saved=!referralReceiptNeedsSave.has(receipt.id)||save();
+    if(saved){
+      referralReceiptNeedsSave.delete(receipt.id);
+      api("/api/referrals/receipt/ack",{receiptId:receipt.id}).catch(()=>{}).finally(()=>referralReceiptProcessing.delete(receipt.id));
+    }else referralReceiptProcessing.delete(receipt.id);
+  });
+}
+async function activateReferralIfEligible(quiet=false){
+  if(!initData||referralActivationBusy||S.taps<REFERRAL_TAP_GOAL||!referralStateData?.myReferral||referralStateData.myReferral.activated)return;
+  referralActivationBusy=true;
+  try{
+    const result=await api("/api/referrals/activate",{taps:S.taps});
+    if(result.activated){
+      referralStateData.myReferral.activated=true;
+      if(!quiet)toast("Друг активирован · пригласивший получит +5 000 монет");
+    }
+  }catch(error){
+    if(!quiet)toast("Не удалось подтвердить приглашение · попробуем ещё раз позже");
+  }finally{referralActivationBusy=false}
+}
+async function syncReferrals(){
+  if(!initData){$("referralInfo").textContent="Открой игру в Telegram, чтобы приглашать друзей";return null}
+  try{
+    const state=await api("/api/referrals/state",{});
+    referralStateData=state;
+    $("referralInfo").textContent=`Активных друзей: ${state.activated} из ${state.invited} · +${fmt(state.rewardCoins)} за ${state.tapGoal} тапов`;
+    processReferralReceipts(state.receipts);
+    await activateReferralIfEligible(true);
+    return state;
+  }catch(error){
+    $("referralInfo").textContent="Не удалось загрузить приглашения · нажми «Отправить» ещё раз";
+    return null;
+  }
+}
+async function shareReferralLink(){
+  const state=await syncReferrals();
+  if(!state?.inviteLink){toast("Ссылка-приглашение пока недоступна");return}
+  const text="Играй в AUREX и майни монеты! За 100 тапов ты активируешь бонус для меня 🎮";
+  const url="https://t.me/share/url?url="+encodeURIComponent(state.inviteLink)+"&text="+encodeURIComponent(text);
+  tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url,"_blank");
 }
 const winterReceiptProcessing=new Set(),winterReceiptNeedsSave=new Set();
 function processWinterReceipts(receipts,quiet=false){
@@ -1026,6 +1092,7 @@ async function syncLeaderboard(){
     leaderboardPlayers=res.players||[]; leaderboardRank=res.rank||0; leaderboardCount=res.count||0;
     try{localStorage.setItem("aurex_leaderboard_"+me.id,JSON.stringify({players:leaderboardPlayers,rank:leaderboardRank,count:leaderboardCount}))}catch(e){}
     renderLeaderboard();
+    if(referralStateData?.myReferral&&!referralStateData.myReferral.activated)await activateReferralIfEligible(true);
   }catch(e){ $("lbStatus").textContent=restoreLeaderboard()?"Офлайн · показан сохранённый рейтинг":"Не удалось загрузить рейтинг · нажми «Обновить»"; }
 }
 function restoreLeaderboard(){
@@ -1109,6 +1176,7 @@ setInterval(()=>{
 setInterval(save,5000);
 setInterval(()=>{if(initData)syncLeaderboard()},15000);
 setInterval(()=>{if(initData)syncWinter(true)},60000);
+setInterval(()=>{if(initData){syncPlayerCount();syncReferrals()}},60000);
 
 /* ---- старт ---- */
 load(()=>{
@@ -1118,7 +1186,7 @@ load(()=>{
   if(off>10){ earn(off); setTimeout(()=>toast(`Пока тебя не было: +${fmt(off)} 🪙`),600); }
   S.lastSeen=Date.now(); window.addEventListener("beforeunload",()=>{S.lastSeen=Date.now();save()});
   document.addEventListener("visibilitychange",()=>{S.lastSeen=Date.now();save()});
-  renderAll(); syncPurchases(); syncLeaderboard(); syncWinter(true);
+  renderAll(); syncPurchases(); syncLeaderboard(); syncWinter(true); syncReferrals(); syncPlayerCount();
 });
 </script>
 </body>
