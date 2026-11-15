@@ -46,10 +46,13 @@ class PlayerCounterTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.old_players_file = bot.PLAYERS_FILE
+        self.old_db_file = bot.DB_FILE
         bot.PLAYERS_FILE = os.path.join(self.temp_dir.name, "players.json")
+        bot.DB_FILE = os.path.join(self.temp_dir.name, "purchases.json")
 
     def tearDown(self):
         bot.PLAYERS_FILE = self.old_players_file
+        bot.DB_FILE = self.old_db_file
         self.temp_dir.cleanup()
 
     def test_counts_unique_telegram_users_only(self):

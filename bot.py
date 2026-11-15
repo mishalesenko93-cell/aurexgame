@@ -15,7 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://mishalesenko93-cell.github.io/aurexgame/")
-WEBAPP_URL += ("&" if "?" in WEBAPP_URL else "?") + "v=20261115-referrals-players"
+WEBAPP_URL += ("&" if "?" in WEBAPP_URL else "?") + "v=20261115-starter-pack"
 PORT = int(os.environ.get("PORT", "8080"))
 ALLOW_ORIGIN = os.environ.get("ALLOW_ORIGIN", "https://mishalesenko93-cell.github.io")
 CHANNEL = "https://t.me/AurexCompany"
@@ -37,6 +37,7 @@ ITEMS = {
     "don10": {"title": "Поддержать AUREX",   "desc": "Спасибо за развитие! +10 000",   "stars": 10},
     "don50": {"title": "Большая поддержка",  "desc": "Респект от AurexCompany! +75 000","stars": 50},
     "platinum_case": {"title": "Platinium case", "desc": "Премиальный кейс AUREX", "stars": 100},
+    "starter_pack": {"title": "AUREX Starter Pack", "desc": "Turbo ×2 навсегда, авто-майнер и 100 000 монет", "stars": 99},
     "winter_pass": {"title": "AUREX WINTER 2026 Premium", "desc": "Premium-ветка зимнего сезона AUREX", "stars": 149},
 }
 
@@ -287,9 +288,14 @@ def winter_state(profile, now):
 def db_load():
     try:
         with open(DB_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
+            data = json.load(f)
+    except FileNotFoundError:
         return {}
+    except (OSError, ValueError) as error:
+        raise RuntimeError("Could not read purchase data") from error
+    if not isinstance(data, dict):
+        raise RuntimeError("Invalid purchase data")
+    return data
 
 
 def json_save(path, data):
@@ -365,22 +371,82 @@ def score_upsert(user, score, taps=0):
     return {"players": players, "rank": rank, "count": len(players)}
 
 
-def player_count_record(user_id):
+def players_load():
+    try:
+        with open(PLAYERS_FILE, "r", encoding="utf-8") as file:
+            players = json.load(file)
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError) as error:
+        raise RuntimeError("Could not read player count data") from error
+    if not isinstance(players, dict):
+        raise RuntimeError("Invalid player count data")
+    return players
+
+
+def starter_pack_purchased(purchases, user_id):
+    records = purchases.get(str(user_id), [])
+    if not isinstance(records, list) or any(not isinstance(record, dict) for record in records):
+        raise RuntimeError("Invalid user purchase data")
+    return any(record.get("item") == "starter_pack" for record in records)
+
+
+def player_count_open(user_id):
     uid = str(user_id)
     if not uid.isdigit():
         raise ValueError("Invalid Telegram user ID")
     with lock:
-        try:
-            with open(PLAYERS_FILE, "r", encoding="utf-8") as file:
-                players = json.load(file)
-        except FileNotFoundError:
-            players = {}
-        if not isinstance(players, dict):
-            raise RuntimeError("Invalid player count data")
+        players = players_load()
         if uid not in players:
-            players[uid] = int(time.time())
+            players[uid] = {
+                "firstSeen": int(time.time()),
+                "starterPackEligible": True,
+                "starterPackSeen": False,
+            }
             json_save(PLAYERS_FILE, players)
-        return len(players)
+        profile = players[uid]
+        purchases = db_load()
+        eligible = (
+            isinstance(profile, dict)
+            and profile.get("starterPackEligible") is True
+            and not starter_pack_purchased(purchases, uid)
+        )
+        return {
+            "count": len(players),
+            "starterPackEligible": eligible,
+            "starterPackOfferAvailable": eligible and not profile.get("starterPackSeen", False),
+        }
+
+
+def player_count_record(user_id):
+    return player_count_open(user_id)["count"]
+
+
+def starter_pack_can_buy(user_id):
+    uid = str(user_id)
+    if not uid.isdigit():
+        return False
+    with lock:
+        profile = players_load().get(uid)
+        if not isinstance(profile, dict) or profile.get("starterPackEligible") is not True:
+            return False
+        return not starter_pack_purchased(db_load(), uid)
+
+
+def starter_pack_mark_seen(user_id):
+    uid = str(user_id)
+    if not uid.isdigit():
+        raise ValueError("Invalid Telegram user ID")
+    with lock:
+        players = players_load()
+        profile = players.get(uid)
+        if not isinstance(profile, dict) or profile.get("starterPackEligible") is not True:
+            return False
+        if starter_pack_purchased(db_load(), uid) or profile.get("starterPackSeen"):
+            return False
+        profile["starterPackSeen"] = True
+        json_save(PLAYERS_FILE, players)
+        return True
 
 
 # ---------- Telegram API ----------
@@ -834,10 +900,17 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/api/players/open":
             try:
-                return self._send(200, {"count": player_count_record(uid)})
+                return self._send(200, player_count_open(uid))
             except (OSError, RuntimeError, TypeError, ValueError) as error:
                 print("Player count storage error:", error)
                 return self._send(500, {"error": "player_count_unavailable"})
+
+        if self.path == "/api/starter-pack/seen":
+            try:
+                return self._send(200, {"ok": starter_pack_mark_seen(uid)})
+            except (OSError, RuntimeError, TypeError, ValueError) as error:
+                print("Starter pack offer storage error:", error)
+                return self._send(500, {"error": "starter_pack_unavailable"})
 
         if self.path.startswith("/api/winter/"):
             try:
@@ -854,10 +927,21 @@ class Handler(BaseHTTPRequestHandler):
             item = ITEMS.get(item_id)
             if not item:
                 return self._send(400, {"error": "unknown item"})
+            if item_id == "starter_pack":
+                try:
+                    if not starter_pack_can_buy(uid):
+                        return self._send(403, {"error": "starter_pack_unavailable"})
+                except (OSError, RuntimeError, TypeError, ValueError) as error:
+                    print("Starter pack purchase check error:", error)
+                    return self._send(500, {"error": "starter_pack_unavailable"})
             if item_id == "winter_pass" and not winter_active():
                 return self._send(403, {"error": "season_not_active"})
-            if item_id == "winter_pass" and db_counts(uid).get("winter_pass", 0) > 0:
-                return self._send(409, {"error": "winter_pass_already_owned"})
+            try:
+                if item_id == "winter_pass" and db_counts(uid).get("winter_pass", 0) > 0:
+                    return self._send(409, {"error": "winter_pass_already_owned"})
+            except (OSError, RuntimeError, TypeError, ValueError) as error:
+                print("Purchase storage error:", error)
+                return self._send(500, {"error": "purchase_storage_unavailable"})
             try:
                 res = tg(
                     "createInvoiceLink",
@@ -874,7 +958,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(500, {"error": str(e)})
 
         if self.path == "/api/purchases":
-            return self._send(200, {"items": db_counts(uid)})
+            try:
+                return self._send(200, {"items": db_counts(uid)})
+            except (OSError, RuntimeError, TypeError, ValueError) as error:
+                print("Purchase storage error:", error)
+                return self._send(500, {"error": "purchase_storage_unavailable"})
 
         if self.path == "/api/score":
             score = data.get("score")
@@ -913,12 +1001,18 @@ def handle_update(u):
             owner_id = int(parts[1])
         except (IndexError, ValueError):
             owner_id = None
+        try:
+            starter_pack_allowed = item_id != "starter_pack" or starter_pack_can_buy(owner_id)
+        except (OSError, RuntimeError, TypeError, ValueError) as error:
+            print("Starter pack checkout check error:", error)
+            starter_pack_allowed = False
         ok = (
             item is not None
             and owner_id == q.get("from", {}).get("id")
             and q.get("currency") == "XTR"
             and q.get("total_amount") == item["stars"]
             and (item_id != "winter_pass" or winter_active())
+            and starter_pack_allowed
         )
         tg("answerPreCheckoutQuery", pre_checkout_query_id=q["id"], ok=ok,
            **({} if ok else {"error_message": "Товар недоступен"}))
